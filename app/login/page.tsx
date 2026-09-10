@@ -1,6 +1,7 @@
-'use client';
+﻿'use client';
 
 import { FormEvent, useMemo, useState } from 'react';
+import Image from 'next/image';
 import { createClient } from '@/lib/supabase/client';
 
 export default function LoginPage() {
@@ -36,7 +37,7 @@ export default function LoginPage() {
       }
 
       setMessageTone('quiet');
-      setMessage('Signed in. Opening your day…');
+      setMessage('Signed in. Opening your dayâ€¦');
       window.location.assign('/');
     } catch (error) {
       setMessage(`Unable to contact authentication: ${error instanceof Error ? error.message : 'Unknown error.'}`);
@@ -72,7 +73,10 @@ export default function LoginPage() {
   return (
     <div className="loginWrap" style={{position:'fixed', inset:0, zIndex:100}}>
       <div className="loginCard">
-        <span className="eyebrow loginBrand">RESCUE TYRES</span>
+        <div className="loginBrandBlock">
+          <Image className="loginLogo" src="/brand/rescue-tyres-logo.png" alt="Rescue Tyres Mobile Services" width={168} height={164} priority />
+          <span className="eyebrow loginBrand">RESCUE TYRES</span>
+        </div>
         <h1>A smoother<br/>day starts here.</h1>
         <p className="loginLead">Your jobs. Your team. Everything in hand.</p>
         <form onSubmit={submit} className="loginForm">
@@ -84,9 +88,9 @@ export default function LoginPage() {
             <span className="loginLabel">Password</span>
             <input className="input" autoComplete="current-password" type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="" required />
           </label>
-          <button className="btn primary loginSubmit" type="submit" disabled={loading}>{loading ? 'Signing in…' : 'Sign in'}</button>
+          <button className="btn primary loginSubmit" type="submit" disabled={loading}>{loading ? 'Signing inâ€¦' : 'Sign in'}</button>
           <button className="loginForgot" type="button" onClick={() => void forgotPassword()} disabled={resetting || loading}>
-            {resetting ? 'Sending reset…' : 'Forgot password?'}
+            {resetting ? 'Sending resetâ€¦' : 'Forgot password?'}
           </button>
           {message ? <div className={messageTone === 'warn' ? 'error' : 'loginQuietMsg'} role="status">{message}</div> : null}
         </form>

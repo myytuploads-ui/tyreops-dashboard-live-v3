@@ -1,6 +1,7 @@
-'use client';
+﻿'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname, useSearchParams } from 'next/navigation';
 import LogoutButton from './LogoutButton';
 
@@ -47,7 +48,11 @@ function Icon({ name }: { name: IconName }) {
 }
 
 function Brand() {
-  return <div className="productBrandMark" aria-hidden="true"><span></span><i></i></div>;
+  return (
+    <div className="productBrandMark productBrandMarkLogo" aria-hidden="true">
+      <Image src="/brand/rescue-tyres-mark.png" alt="" width={36} height={36} />
+    </div>
+  );
 }
 
 export default function Sidebar() {
@@ -83,7 +88,7 @@ export default function Sidebar() {
       </nav>
 
       <div className="productSidebarFoot">
-        <div className="productTenant"><div className="productTenantAvatar">RT</div><div><strong>Rescue Tyres</strong><span>Owner workspace</span></div></div>
+        <div className="productTenant"><div className="productTenantAvatar productTenantAvatarLogo"><Image src="/brand/rescue-tyres-mark-64.png" alt="" width={28} height={28} /></div><div><strong>Rescue Tyres</strong><span>Owner workspace</span></div></div>
         <LogoutButton />
       </div>
     </aside>
@@ -96,3 +101,4 @@ export default function Sidebar() {
     </nav>
   </>;
 }
+
