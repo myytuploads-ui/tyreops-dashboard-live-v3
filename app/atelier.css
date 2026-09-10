@@ -386,3 +386,27 @@
   .atelierButton,.btn,.atelierJob,.atelierUrgentCard,.atelierMenu>a,.loginCard .input{transition:none!important}
   .atelierJob:hover,.atelierUrgentCard:hover,.atelierMenu>a:hover{transform:none}
 }
+
+/* Jobs / Inbox / Money / More — locked bar finish */
+.atelierTabs button{min-height:44px;border-radius:10px;letter-spacing:.01em}
+.atelierTabs button.selected{box-shadow:inset 0 0 0 1px rgba(255,255,255,.06)}
+.atelierJob footer .atelierButton.primary{box-shadow:0 8px 20px rgba(237,48,71,.22)}
+.atelierSearch{border:1px solid rgba(255,255,255,.05);box-shadow:inset 0 1px 0 rgba(255,255,255,.02)}
+
+.operationsInbox .inboxShell{border-radius:20px;border:1px solid rgba(255,255,255,.07);background:#12161c}
+.operationsInbox .conversationItem{transition:background .16s ease}
+.operationsInbox .conversationItem:focus-visible{outline:2px solid #ed3047;outline-offset:-2px}
+.operationsInbox .messageBubble{border-radius:16px}
+.operationsInbox .conversationComposer textarea,.operationsInbox .conversationComposer input{font-size:16px;min-height:44px}
+
+.atelierEarningsPeriod{padding:14px 4px;border-radius:14px}
+.atelierEarningsPeriod span{letter-spacing:.04em}
+.atelierRemitRow{transition:background .16s ease}
+.atelierRemitRow:hover{background:rgba(255,255,255,.02)}
+.atelierPeriodFilters a{min-height:40px;display:inline-flex;align-items:center;border:1px solid transparent}
+.atelierPeriodFilters a:focus-visible{outline:2px solid #ed3047;outline-offset:2px}
+
+.atelierMore .atelierMenu>a{min-height:64px}
+.atelierDiagnostics summary{color:#8f969f;font-size:12px}
+.atelierDiagnostics a{color:#c5cad3;border-radius:10px}
+.atelierDiagnostics a:hover{background:rgba(255,255,255,.03)}
