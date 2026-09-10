@@ -43,7 +43,9 @@ function timeValue(value: unknown) {
   return Number.isFinite(timestamp) ? timestamp : 0;
 }
 
-export default async function ConversationsPage() {
+export default async function ConversationsPage({ searchParams }: { searchParams: Promise<{ job?: string }> }) {
+  const params = await searchParams;
+  const initialJobId = typeof params?.job === 'string' ? params.job : null;
   const supabase = await createClient();
   const [jobsResult, messagesResult, customersResult, fittersResult] = await Promise.all([
     supabase.from('jobs').select('*').order('updated_at', { ascending: false }).limit(1000),
@@ -192,5 +194,5 @@ export default async function ConversationsPage() {
     duplicateMessageCount ? `${duplicateMessageCount} duplicate provider message${duplicateMessageCount === 1 ? '' : 's'} hidden.` : '',
   ].filter(Boolean);
 
-  return <ConversationsInbox conversations={conversations} notices={notices} />;
+  return <ConversationsInbox conversations={conversations} notices={notices} initialJobId={initialJobId} />;
 }

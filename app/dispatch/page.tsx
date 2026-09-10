@@ -1,9 +1,26 @@
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
-import PageHeader from '@/components/PageHeader';
+import StatusBadge from '@/components/StatusBadge';
 
-export default async function DispatchPage(){
-  const supabase=await createClient();
-  const {data:jobs}=await supabase.from('jobs').select('id,public_job_id,status,postcode,tyre_size,customer_price,deposit_status,assigned_fitter_id,agreed_eta_minutes').in('status',['deposit_paid','awaiting_owner_assignment','offers_received','assigned','fitter_on_route','arrived','in_progress']).order('updated_at',{ascending:false}).limit(200);
-  return <><PageHeader title="Dispatch" subtitle="Owner-controlled fitter decisions and live job progress."/><div className="readonly">Automatic fitter selection and dispatch remain disabled. Every assignment is owner-approved.</div><section className="panel"><div className="panelHead"><h2>Jobs needing operational attention</h2><p>{(jobs||[]).length} live jobs</p></div><div className="panelBody"><div className="ownerQueue">{(jobs||[]).map((j:any)=><Link className="ownerQueueRow" href={`/jobs/${j.id}`} key={j.id}><div><strong>{j.public_job_id}</strong><p>{j.postcode||'Location pending'} · {j.tyre_size||'Tyre pending'} · {j.status.replaceAll('_',' ')}</p></div><small>{j.assigned_fitter_id?'Assigned':'Owner decision required'}<br/>{j.agreed_eta_minutes?`${j.agreed_eta_minutes}m ETA`:''}</small></Link>)}{!(jobs||[]).length&&<div className="emptyState"><strong>No dispatch decisions waiting</strong><span>Paid jobs will appear here.</span></div>}</div></div></section></>;
+export default async function DispatchPage() {
+  const supabase = await createClient();
+  const { data: jobs } = await supabase
+    .from('jobs')
+    .select('id,public_job_id,status,postcode,postcode_area,tyre_size,tyre_quantity,assigned_fitter_id,agreed_eta_minutes,updated_at')
+    .in('status', ['deposit_paid', 'awaiting_owner_assignment', 'offers_received', 'awaiting_group_dispatch', 'assigned', 'fitter_on_route', 'arrived', 'in_progress'])
+    .order('updated_at', { ascending: false })
+    .limit(200);
+
+  return <div className="atelierPage">
+    <header className="atelierHeading"><div><span className="eyebrow">FITTER SOURCING</span><h1>Dispatch.</h1><p>Owner-approved assignments only. Automatic selection stays off.</p></div></header>
+    <div className="atelierJobs">{(jobs || []).map((job: any) => (
+      <Link className="atelierJob atelierJobLink" href={`/jobs/${job.id}`} key={job.id}>
+        <div className="atelierJobMeta"><StatusBadge status={job.status}/><span>{job.agreed_eta_minutes ? `${job.agreed_eta_minutes}m ETA` : '—'}</span></div>
+        <h2>{job.postcode || job.postcode_area || 'Location pending'}</h2>
+        <p className="atelierTyre">{job.tyre_size || 'Tyre pending'}{job.tyre_quantity ? ` × ${job.tyre_quantity}` : ''}</p>
+        <footer><small>{job.public_job_id || 'Job'}</small><span className="atelierButton">{job.assigned_fitter_id ? 'View job' : 'Choose fitter'} ↗</span></footer>
+      </Link>
+    ))}</div>
+    {!(jobs || []).length && <div className="atelierEmpty"><h2>No dispatch decisions waiting.</h2><p>Paid jobs needing a fitter will appear here.</p></div>}
+  </div>;
 }

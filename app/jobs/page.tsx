@@ -3,15 +3,43 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
-import { dispatchLabel, expectedMargin, jobProblems, needsYou as classifyNeedsYou, paymentLabel, validMoney } from '@/lib/dashboard/operations';
+import { needsYou as classifyNeedsYou } from '@/lib/dashboard/operations';
 import { isTestJob } from '@/lib/dashboard/filters';
 import { useAuthoritativePolling } from '@/lib/dashboard/use-authoritative-polling';
 import StatusBadge from '@/components/StatusBadge';
 
 type Row = Record<string, any>;
-const money = (value: unknown) => { const amount = validMoney(value); return amount === null ? '—' : new Intl.NumberFormat('en-GB', { style: 'currency', currency: 'GBP', maximumFractionDigits: 0 }).format(amount); };
 const when = (value: unknown) => value ? new Date(String(value)).toLocaleString('en-GB', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) : '—';
-const STATUSES = ['awaiting_details', 'awaiting_payment', 'payment_link_expired', 'awaiting_owner_price', 'awaiting_owner_first_refusal', 'awaiting_group_dispatch', 'dispatching_preferred', 'dispatching_general', 'offers_received', 'awaiting_owner_assignment', 'assigned', 'fitter_on_route', 'arrived', 'in_progress', 'manual_review', 'completed', 'cancelled'];
+const STATUS_LABELS: Record<string, string> = {
+  awaiting_details: 'Details needed',
+  awaiting_payment: 'Waiting for deposit',
+  payment_link_expired: 'Payment expired',
+  awaiting_owner_price: 'Needs price',
+  awaiting_owner_first_refusal: 'Your decision',
+  awaiting_group_dispatch: 'Group dispatch',
+  dispatching_preferred: 'Finding fitter',
+  dispatching_general: 'Finding fitter',
+  offers_received: 'Offers ready',
+  awaiting_owner_assignment: 'Choose fitter',
+  deposit_paid: 'Deposit paid',
+  assigned: 'Fitter assigned',
+  fitter_on_route: 'On the way',
+  arrived: 'Arrived',
+  in_progress: 'Fitting',
+  manual_review: 'Needs attention',
+  completed: 'Completed',
+  cancelled: 'Cancelled',
+};
+const STATUSES = Object.keys(STATUS_LABELS);
+
+function jobCta(status: string) {
+  const s = String(status || '').toLowerCase();
+  if (s === 'awaiting_owner_price') return 'Set price';
+  if (s === 'awaiting_payment' || s === 'payment_link_expired') return 'View payment';
+  if (['deposit_paid', 'offers_received', 'awaiting_owner_assignment', 'awaiting_group_dispatch'].includes(s)) return 'Choose fitter';
+  if (s === 'awaiting_owner_first_refusal') return 'Your decision';
+  return 'View job';
+}
 
 export default function JobsPage() {
   const supabase = useMemo(() => createClient(), []);
@@ -56,31 +84,29 @@ export default function JobsPage() {
     const key = String(event.job_id || '');
     if (key) eventsByJob.set(key, [...(eventsByJob.get(key) || []), event]);
   }
-  const needsYou = (job: Row, jobPayments: Row[], _events?: Row[]) =>
-    classifyNeedsYou(job, jobPayments, eventsByJob.get(String(job.id)) || []);
+  const needsYou = (job: Row) => classifyNeedsYou(job, paymentsByJob.get(String(job.id)) || [], eventsByJob.get(String(job.id)) || []);
   const visible = jobs.filter((job) => showTests || !isTestJob(job));
   const filtered = visible.filter((job) => {
-    const jobPayments = paymentsByJob.get(String(job.id)) || [];
-    if (needsOnly && !needsYou(job, jobPayments, eventsByJob.get(String(job.id)) || [])) return false;
+    if (needsOnly && !needsYou(job)) return false;
     if (status && job.status !== status) return false;
     if (!query.trim()) return true;
     const needle = query.trim().toLowerCase();
     return [job.public_job_id, job.customer_name, job.customer_phone, job.postcode, job.postcode_area, job.vehicle_registration, job.tyre_size, fitterNames.get(String(job.assigned_fitter_id || ''))].some((value) => String(value || '').toLowerCase().includes(needle));
   });
-  const needsCount = visible.filter((job) => needsYou(job, paymentsByJob.get(String(job.id)) || [], eventsByJob.get(String(job.id)) || [])).length;
+  const needsCount = visible.filter((job) => needsYou(job)).length;
 
   return <div className="atelierPage">
     <header className="atelierHeading"><div><span className="eyebrow">YOUR OPERATIONS</span><h1>{needsOnly ? 'Needs you.' : 'Every job. One place.'}</h1><p>{needsOnly ? 'The decisions that keep your day moving.' : 'From the first message to the final fitting.'}</p></div><label className="compactCheck"><input type="checkbox" checked={showTests} onChange={e=>setShowTests(e.target.checked)}/> Test records</label></header>
-    <div className="atelierSearch"><input aria-label="Search jobs" value={query} onChange={e=>setQuery(e.target.value)} placeholder="Search postcode, customer or tyre size…"/><select aria-label="Filter status" value={status} onChange={e=>setStatus(e.target.value)}><option value="">Every status</option>{STATUSES.map(s=><option key={s} value={s}>{s.replaceAll('_',' ')}</option>)}</select></div>
-    <div className="atelierTabs"><button className={!needsOnly?'selected':''} onClick={()=>setNeedsOnly(false)}>All jobs <span>{visible.length}</span></button><button className={needsOnly?'selected':''} onClick={()=>setNeedsOnly(true)}>Needs you <span>{needsCount}</span></button></div>
+    <div className="atelierSearch"><input aria-label="Search jobs" value={query} onChange={e=>setQuery(e.target.value)} placeholder="Search postcode, customer or tyre size…"/><select aria-label="Filter status" value={status} onChange={e=>setStatus(e.target.value)}><option value="">Every status</option>{STATUSES.map(s=><option key={s} value={s}>{STATUS_LABELS[s]}</option>)}</select></div>
+    <div className="atelierTabs"><button type="button" className={!needsOnly?'selected':''} onClick={()=>setNeedsOnly(false)}>All jobs <span>{visible.length}</span></button><button type="button" className={needsOnly?'selected':''} onClick={()=>setNeedsOnly(true)}>Needs you <span>{needsCount}</span></button></div>
     {loading && <div className="modernEmpty">Loading your jobs…</div>}{error && <div className="error">{error}</div>}
-    <div className="atelierJobs">{filtered.map(job=><article className="atelierJob" key={job.id}>
+    <div className="atelierJobs">{filtered.map(job=><Link className="atelierJob atelierJobLink" href={`/jobs/${job.id}`} key={job.id}>
       <div className="atelierJobMeta"><StatusBadge status={job.status}/><span>{when(job.updated_at)}</span></div>
       <h2>{job.postcode || job.postcode_area || 'Location pending'}</h2>
       <p className="atelierTyre">{job.tyre_size || 'Tyre details pending'}{job.tyre_quantity ? ` × ${job.tyre_quantity}` : ''}</p>
       <div className="atelierCustomer"><span className="atelierAvatar">{String(job.customer_name || 'C').slice(0,1)}</span><div><strong>{job.customer_name || 'Customer'}</strong><span>{job.customer_phone || 'Conversation available'}</span></div></div>
-      <footer><small>{job.public_job_id || 'Job'}</small><Link className={needsOnly?'atelierButton primary':'atelierButton'} href={`/jobs/${job.id}`}>{job.status==='awaiting_owner_price'?'Set price':job.status==='deposit_paid'?'Choose fitter':'View job'} <span>↗</span></Link></footer>
-    </article>)}</div>
+      <footer><small>{job.public_job_id || 'Job'}</small><span className={needsOnly || ['awaiting_owner_price','deposit_paid','offers_received','awaiting_owner_assignment'].includes(String(job.status||'').toLowerCase())?'atelierButton primary':'atelierButton'}>{jobCta(job.status)} <span>↗</span></span></footer>
+    </Link>)}</div>
     {!loading && !filtered.length && <div className="atelierEmpty"><span>✓</span><h2>{needsOnly?'All caught up.':'Nothing here yet.'}</h2><p>{needsOnly?'Your next decision will appear here.':'New enquiries will appear here as they arrive.'}</p></div>}
   </div>;
 }

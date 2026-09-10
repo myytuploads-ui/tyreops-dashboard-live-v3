@@ -5,3 +5,50 @@
 .atelierPage{max-width:1280px;margin:auto}.atelierHeading{display:flex;justify-content:space-between;align-items:center;gap:24px;margin:12px 0 36px}.atelierHeading h1,.atelierCommand h1{font-size:clamp(32px,4vw,52px);line-height:1.05;letter-spacing:-.055em;margin:12px 0;font-weight:650}.atelierHeading p{color:#989da5;line-height:1.6;margin:0}.eyebrow{font-size:10px;letter-spacing:.16em;color:#8f949e}.atelierSearch{display:flex;gap:14px;background:#181b20;border-radius:16px;padding:8px;margin-bottom:18px}.atelierSearch input{flex:1;min-width:0;background:none;border:0;color:white;padding:12px;font:inherit;outline:none}.atelierSearch select{background:#20242a;border:0;max-width:42%}.atelierTabs{display:flex;gap:8px;margin:0 0 28px}.atelierTabs button{border:0;border-radius:10px;background:none;color:#a1a6af;padding:12px 16px;font:inherit;cursor:pointer}.atelierTabs button.selected{background:#25282e;color:white}.atelierTabs span{margin-left:8px;color:#9298a3}.atelierJobs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px}.atelierJob{padding:24px;background:linear-gradient(150deg,#1b1e24,#14171c);border-radius:22px;border:1px solid #ffffff08;transition:transform .2s}.atelierJob:hover{transform:translateY(-3px)}.atelierJobMeta{display:flex;align-items:center;justify-content:space-between;gap:8px}.atelierJobMeta>span:last-child{font-size:10px;color:#858b96}.atelierJob h2{font-size:27px;letter-spacing:-.035em;margin:24px 0 6px}.atelierTyre{color:#c2c6ce;font-size:15px;margin:0 0 26px}.atelierCustomer{display:flex;gap:12px;align-items:center}.atelierAvatar{width:36px;height:36px;background:#2b3039;border-radius:50%;display:grid;place-items:center;color:#cbd0d9}.atelierCustomer strong,.atelierCustomer div span{display:block;font-size:12px}.atelierCustomer div span{color:#858b96;margin-top:4px}.atelierJob footer{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:24px;padding-top:18px;border-top:1px solid #ffffff08}.atelierJob small{color:#777e89;font-size:10px}.atelierButton{display:inline-flex;align-items:center;justify-content:center;gap:16px;padding:12px 16px;border:1px solid #ffffff10;background:#242830;border-radius:12px;font-size:12px;font-weight:650;min-height:44px}.atelierButton.primary{background:#ed3047;border-color:transparent;color:white}.atelierEmpty{text-align:center;padding:72px 20px;color:#969da8}.atelierEmpty>span{font-size:32px;color:#bec8c1}.atelierEmpty h2{color:#eee}.atelierCommand{margin:8px 0 30px}.atelierBack{display:inline-block;color:#949ba6;font-size:13px;margin-bottom:32px}.atelierCommandTop{display:flex;justify-content:space-between;align-items:center;gap:20px}.atelierCommandTop p{font-size:20px;color:#b7bdc6;margin:0 0 12px}.atelierCommandTop small{color:#737c89}.atelierProgress{display:grid;grid-template-columns:repeat(7,1fr);margin-top:36px;gap:6px}.atelierProgress>div{display:grid;gap:10px;position:relative;color:#626a76;font-size:11px}.atelierProgress i{display:grid;place-items:center;width:28px;height:28px;border-radius:50%;background:#20252c;font-style:normal}.atelierProgress .reached{color:#e0e2e6}.atelierProgress .reached i{background:#d82d42;color:white}.atelierDetailGrid{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:24px}.atelierSurface{background:#171b20;border-radius:20px;padding:26px}.atelierSurface h2{font-size:23px;letter-spacing:-.03em}.atelierSurface p,.atelierSurface small{color:#969fab;line-height:1.6}.atelierContactActions{display:flex;gap:8px;flex-wrap:wrap;margin:22px 0}.atelierMoneyRow{display:flex;flex-wrap:wrap;gap:32px;padding:24px 0;margin:0 0 28px;border-top:1px solid #ffffff0d;border-bottom:1px solid #ffffff0d}.atelierMoneyRow span{display:block;color:#949aa5;font-size:12px}.atelierMoneyRow strong{display:block;font-size:26px;letter-spacing:-.04em;margin-top:8px}.atelierMore{max-width:920px}.atelierMenu{display:grid;grid-template-columns:1fr 1fr;gap:12px}.atelierMenu>a{display:flex;align-items:center;gap:18px;padding:22px;border-radius:16px;background:#181c22}.atelierMenu>a>span:last-child{margin-left:auto;color:#7b8490}.atelierMenu strong{font-size:15px}.atelierMenu p{font-size:12px;color:#8e98a5;margin:6px 0 0}.atelierMenuIcon{font-size:25px;color:#b1b9c4;width:30px;text-align:center}.atelierDiagnostics{margin-top:30px;color:#89929f;padding:20px 0}.atelierDiagnostics summary{cursor:pointer}.atelierDiagnostics a{display:block;padding:14px}.badge{font-size:9px;letter-spacing:.035em;border:0;padding:6px 9px}.badge.awaiting_owner_price{background:#eec35a1a;color:#e6c471}.headline h1{text-transform:none;letter-spacing:-.045em}.activityPanel{display:block!important}.homeV2Footer{display:none}.productMain{max-width:1540px}.productSidebar{background:#0f1216}.mobileDock{box-shadow:0 -6px 30px #0003!important}.productBrandMark{box-shadow:none!important}
 @media(max-width:1050px){.atelierJobs{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:720px){.atelierHeading{margin:8px 0 26px;align-items:flex-start}.atelierHeading h1{font-size:34px}.atelierHeading p{font-size:13px}.atelierHeading .compactCheck{font-size:9px}.atelierJobs,.atelierMenu,.atelierDetailGrid{grid-template-columns:1fr}.atelierJob{padding:22px;border-radius:20px}.atelierSearch{flex-wrap:wrap}.atelierSearch input{width:100%;flex-basis:100%;font-size:16px}.atelierSearch select{max-width:100%;width:100%;font-size:13px}.atelierCommandTop{display:block}.atelierCommandTop>.atelierButton{margin-top:22px}.atelierProgress{gap:2px}.atelierProgress>div{font-size:9px}.atelierProgress i{width:24px;height:24px}.atelierSurface{padding:22px}.atelierMoneyRow{gap:24px;display:grid;grid-template-columns:1fr 1fr}.atelierMenu>a{padding:20px}.productMain{padding:24px 18px 36px}.mobileDock{left:0;right:0;bottom:0;border-radius:0;border:0;border-top:1px solid #ffffff0c;padding:10px 8px calc(10px + env(safe-area-inset-bottom));background:#101318f5}.mobileDock a{min-height:46px}.mobileDock a span{font-size:10px}.homeV2Header h1{font-size:34px}}
+
+/* Finish-pass polish */
+.atelierJobLink{display:block;color:inherit;cursor:pointer}
+.atelierJobLink:focus-visible,.atelierUrgentCard:focus-visible{outline:2px solid #ed3047;outline-offset:2px}
+.atelierJobLink .atelierButton,.atelierUrgentCard .atelierButton{pointer-events:none}
+.atelierUrgentCard{display:block;padding:22px;background:#11151bcc;border-radius:18px;color:inherit;border:1px solid #ffffff08;transition:transform .18s ease,border-color .18s ease,background .18s ease}
+.atelierUrgentCard:hover{transform:translateY(-2px);border-color:#ed304744;background:#161a22}
+.atelierUrgentCard h3{font-size:25px;margin:20px 0 6px;letter-spacing:-.04em}
+.atelierUrgentCard p{margin-bottom:24px;color:#a6a3ad}
+.atelierUrgentCard .atelierButton{width:100%}
+.atelierUrgent{gap:16px}
+.atelierUrgent article{display:none}
+.atelierNextStep{display:flex;justify-content:space-between;gap:20px;align-items:center;margin-top:28px;padding:22px 24px;border-radius:18px;background:#141820;border:1px solid #ffffff0a}
+.atelierNextStep.needsYou{background:linear-gradient(135deg,#2a1a20,#171b22 65%);border-color:#ed304733}
+.atelierNextStep h2{font-size:22px;letter-spacing:-.03em;margin:8px 0 6px}
+.atelierNextStep p{margin:0;color:#a7adb8;font-size:13px;line-height:1.5;max-width:52ch}
+.atelierCommandActions{display:flex;flex-wrap:wrap;gap:8px;justify-content:flex-end}
+.atelierConversationControls{display:flex;flex-direction:column;gap:8px;align-items:flex-end}
+.atelierConversationControls .atelierButton{min-width:148px}
+.atelierBalance{font-size:clamp(36px,6vw,56px);letter-spacing:-.05em;margin:12px 0 8px}
+.atelierProblem{color:#ff9b9b!important}
+.badge.dispatching_preferred,.badge.dispatching_general,.badge.offers_received,.badge.awaiting_group_dispatch{background:#eec35a1a;color:#e6c471}
+.badge.deposit_paid{background:#37d67a1a;color:#7ae8a4}
+.success{padding:12px;border:1px solid rgba(55,214,122,.28);background:rgba(55,214,122,.07);color:#79e6a3;border-radius:12px;margin-bottom:14px}
+.controlAction{display:inline-flex;align-items:center;justify-content:center;text-decoration:none}
+.ownerActionPanel{margin:0 0 24px;border:1px solid #ed304733;background:linear-gradient(180deg,#1a1518,#14181e);border-radius:22px;overflow:hidden}
+.ownerActionPanel .panelHead{border-bottom-color:#ffffff0c;padding:20px 22px}
+.ownerActionPanel .panelHead h2{text-transform:none;letter-spacing:-.03em;font-size:24px}
+.ownerActionPanel .panelBody{padding:18px 22px 22px}
+.ownerActionPanel .btn.primary,.groupDispatchCard .btn.primary{background:#ed3047;border-color:#ed3047;color:#fff;min-height:48px;font-weight:700}
+.groupDispatchCard{margin-bottom:24px;border-radius:22px;border-color:#ffffff0c}
+.atelierEmpty{background:#14181e;border:1px solid #ffffff08;border-radius:24px;margin-top:8px}
+.atelierEmpty h2{font-size:24px;letter-spacing:-.03em;margin:12px 0 8px}
+.atelierMenu>a{transition:transform .16s ease,background .16s ease;border:1px solid transparent}
+.atelierMenu>a:hover{transform:translateY(-2px);background:#1c2129;border-color:#ffffff0c}
+.mobileDock a.active{color:#fff}
+.mobileDock a.active svg{color:#ed3047}
+.productNav a.active{box-shadow:inset 3px 0 #ed3047}
+.atelierJobDetail .atelierCommand{margin-bottom:22px}
+@media(max-width:720px){
+  .atelierConversationControls,.atelierConversationControls .atelierButton{width:100%;align-items:stretch}
+  .atelierNextStep{flex-direction:column;align-items:stretch;padding:18px}
+  .atelierCommandActions{justify-content:stretch}
+  .atelierCommandActions .atelierButton{flex:1 1 calc(50% - 8px)}
+  .conversationHeaderActions{flex-wrap:wrap}
+  .ownerActionPanel .btn.primary{width:100%}
+}

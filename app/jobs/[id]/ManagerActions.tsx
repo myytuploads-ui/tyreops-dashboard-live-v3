@@ -94,7 +94,7 @@ export default function ManagerActions({ job, offers, fitters, depositRules, fir
   const matchingDeposit = depositRules.find((rule) => Number(rule.min_job_value_gbp) === enteredCustomerPrice && Number(rule.max_job_value_gbp) === enteredCustomerPrice);
 
   return <section className="panel ownerActionPanel">
-    <div className="panelHead"><div><h2>{isPricing ? 'Price This Job' : isFirstRefusal ? 'Owner Decision' : 'Assign Fitter'}</h2><p>{isPricing ? 'Enter the quote and TyreOps will send the customer their payment link.' : isFirstRefusal ? 'Choose what should happen to this owner-reserved job.' : 'Choose the fitter offer to accept.'}</p></div></div>
+    <div className="panelHead"><div><span className="eyebrow">DO THIS NOW</span><h2>{isPricing ? 'Set price' : isFirstRefusal ? 'Your decision' : 'Assign fitter'}</h2><p>{isPricing ? 'One confirmed price sends the payment link. Catalogue suggestions stay on this screen until you confirm.' : isFirstRefusal ? 'Take it, send it on, or snooze — nothing else matters until you decide.' : 'Pick the fitter. Customer and fitter get notified after it lands.'}</p></div></div>
     <div className="panelBody">
       {error ? <div className="error">{error}</div> : null}
       {notice ? <div className="success">{notice}</div> : null}
@@ -102,7 +102,7 @@ export default function ManagerActions({ job, offers, fitters, depositRules, fir
         <dl className="jobPricingFacts"><div><dt>Tyre</dt><dd>{text(job.tyre_size)} x {text(job.tyre_quantity)}</dd></div><div><dt>Postcode</dt><dd>{text(job.postcode || job.postcode_area)}</dd></div><div><dt>Registration</dt><dd>{text(job.vehicle_registration, 'Not recorded')}</dd></div><div><dt>Urgency</dt><dd>{text(job.urgency, 'Standard')}</dd></div><div><dt>Requested time</dt><dd>{text(job.requested_time || job.requested_at, 'Not recorded')}</dd></div><div><dt>Locking wheel nut</dt><dd>{text(job.locking_wheel_nut, 'Not recorded')}</dd></div><div><dt>Customer notes</dt><dd>{text(job.customer_notes || job.notes, 'Not recorded')}</dd></div></dl>
         {suggestedQuote ? <div className={suggestedQuote.quote_status === 'priced' ? 'suggestedQuoteBox priced' : 'suggestedQuoteBox'}>
           <div><span>Suggested price engine</span><strong>{suggestedQuote.quote_status === 'priced' ? `£${Number(suggestedQuote.customer_price).toFixed(0)}` : 'Manual pricing required'}</strong><p>{suggestedQuote.reason || 'Owner-confirmed pricing rules matched this job.'}</p></div>
-          {suggestedQuote.quote_status === 'priced' ? <button type="button" className="btn" onClick={() => setCustomerPrice(String(suggestedQuote.customer_price || ''))}>Use Suggested Price</button> : null}
+          {suggestedQuote.quote_status === 'priced' ? <button type="button" className="btn" onClick={() => setCustomerPrice(String(suggestedQuote.customer_price || ''))}>Use saved price</button> : null}
         </div> : null}
         {customerPrice ? <div className={matchingDeposit ? 'suggestedQuoteBox priced' : 'suggestedQuoteBox'}><div><span>Confirmed deposit rule</span><strong>{matchingDeposit ? `£${Number(matchingDeposit.deposit_fixed_gbp).toFixed(0)} deposit` : 'Owner decision required'}</strong><p>{matchingDeposit ? `Exact match for a £${enteredCustomerPrice.toFixed(0)} customer quote. TyreOps will use this deposit automatically.` : 'No exact owner-confirmed pair matches this price. TyreOps will not interpolate.'}</p></div></div> : null}
         <div className="managerForm">
@@ -110,7 +110,7 @@ export default function ManagerActions({ job, offers, fitters, depositRules, fir
           {moneyInput(maxFitterCost, setMaxFitterCost, 'Maximum fitter cost £')}
           <label><span>Maximum ETA minutes</span><input inputMode="numeric" value={maxEta} onChange={(event) => setMaxEta(event.target.value)} /></label>
           <label className="wide"><span>Owner note</span><textarea rows={3} value={ownerNotes} onChange={(event) => setOwnerNotes(event.target.value)} placeholder="Optional" /></label>
-          <button type="button" className="btn primary" disabled={Boolean(busy) || !matchingDeposit} onClick={() => void post('/api/price-job', { job_id: job.id, customer_price: customerPrice, deposit_amount: matchingDeposit?.deposit_fixed_gbp, maximum_fitter_cost: maxFitterCost, maximum_eta_minutes: maxEta, owner_notes: ownerNotes }, 'Quote sent. Refreshing the authoritative job state...')}>{busy ? 'Sending...' : matchingDeposit ? 'Confirm & Send Price' : 'Needs Confirmed Deposit Rule'}</button>
+          <button type="button" className="btn primary" disabled={Boolean(busy) || !matchingDeposit} onClick={() => void post('/api/price-job', { job_id: job.id, customer_price: customerPrice, deposit_amount: matchingDeposit?.deposit_fixed_gbp, maximum_fitter_cost: maxFitterCost, maximum_eta_minutes: maxEta, owner_notes: ownerNotes }, 'Quote sent. Refreshing the authoritative job state...')}>{busy ? 'Sending…' : matchingDeposit ? 'Confirm & send quote' : 'Needs a matching deposit rule'}</button>
         </div>
       </> : null}
       {isFirstRefusal && !firstRefusalReady ? <div className="backendContractNotice">This owner decision is still handled from the owner alert link for this job.</div> : null}

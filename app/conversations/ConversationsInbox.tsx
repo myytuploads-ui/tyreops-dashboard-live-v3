@@ -39,9 +39,30 @@ function contextValue(value: string) {
   return value || 'Not recorded';
 }
 
-export default function ConversationsInbox({ conversations, notices = [] }: { conversations: Conversation[]; notices?: string[] }) {
+function usablePhone(value: string) {
+  const digits = String(value || '').replace(/\D/g, '');
+  return digits.length >= 8 ? digits : '';
+}
+
+function telHref(value: string) {
+  const cleaned = String(value || '').replace(/[^+0-9]/g, '');
+  return cleaned ? `tel:${cleaned}` : '';
+}
+
+function waHref(value: string) {
+  const digits = usablePhone(value);
+  return digits ? `https://wa.me/${digits}` : '';
+}
+
+export default function ConversationsInbox({ conversations, notices = [], initialJobId = null }: { conversations: Conversation[]; notices?: string[]; initialJobId?: string | null }) {
   const router = useRouter();
-  const [selectedId, setSelectedId] = useState(conversations[0]?.id || '');
+  const [selectedId, setSelectedId] = useState(() => {
+    if (initialJobId) {
+      const match = conversations.find(conversation => conversation.jobId === initialJobId);
+      if (match) return match.id;
+    }
+    return conversations[0]?.id || '';
+  });
   const [filter, setFilter] = useState<InboxFilter>('all');
   const [search, setSearch] = useState('');
   const [mobileView, setMobileView] = useState<MobileView>('inbox');
@@ -74,6 +95,15 @@ export default function ConversationsInbox({ conversations, notices = [] }: { co
   useEffect(() => {
     if (selectedId && !conversations.some(conversation => conversation.id === selectedId)) setSelectedId(conversations[0]?.id || '');
   }, [conversations, selectedId]);
+
+  useEffect(() => {
+    if (!initialJobId) return;
+    const match = conversations.find(conversation => conversation.jobId === initialJobId);
+    if (match) {
+      setSelectedId(match.id);
+      setMobileView('conversation');
+    }
+  }, [initialJobId, conversations]);
 
   useEffect(() => {
     setModeOverrides(current => {
@@ -221,7 +251,7 @@ export default function ConversationsInbox({ conversations, notices = [] }: { co
         <header className="conversationHeader">
           <button className="mobileBack" type="button" onClick={() => setMobileView('inbox')}>← Inbox</button>
           <div className="conversationIdentity"><h2>{selected.customerName === 'Unknown customer' ? selected.phone : selected.customerName}</h2><p><span>{selected.phone}</span><span>{selected.publicJobId}</span><span>Active {timestamp(selected.latestAt)}</span></p></div>
-          <div className="conversationHeaderActions"><span className={`modeBadge prominent ${selectedMode}`}>{selectedMode === 'human' ? 'Human takeover' : 'AI handling'}</span><button className="contextToggle" type="button" onClick={() => setMobileView('context')}>Job details</button>{selectedMode === 'ai' ? <button className="controlAction takeover" disabled={pendingAction !== null || sendingReply || !selected.jobId} onClick={() => changeMode('takeover')}>{pendingAction === 'takeover' ? 'Taking over…' : 'Take over'}</button> : <button className="controlAction return" disabled={pendingAction !== null || sendingReply || !selected.jobId} onClick={() => changeMode('return_to_ai')}>{pendingAction === 'return_to_ai' ? 'Returning…' : 'Return to AI'}</button>}</div>
+          <div className="conversationHeaderActions"><span className={`modeBadge prominent ${selectedMode}`}>{selectedMode === 'human' ? 'Human takeover' : 'AI handling'}</span>{telHref(selected.phone) ? <a className="controlAction" href={telHref(selected.phone)}>Call</a> : null}{waHref(selected.phone) ? <a className="controlAction" href={waHref(selected.phone)} target="_blank" rel="noreferrer">WhatsApp</a> : null}<button className="contextToggle" type="button" onClick={() => setMobileView('context')}>Job details</button>{selectedMode === 'ai' ? <button className="controlAction takeover" disabled={pendingAction !== null || sendingReply || !selected.jobId} onClick={() => changeMode('takeover')}>{pendingAction === 'takeover' ? 'Taking over…' : 'Take over'}</button> : <button className="controlAction return" disabled={pendingAction !== null || sendingReply || !selected.jobId} onClick={() => changeMode('return_to_ai')}>{pendingAction === 'return_to_ai' ? 'Returning…' : 'Return to AI'}</button>}</div>
         </header>
         {selected.needsAttention ? <div className="attentionBanner"><strong>Needs your attention</strong><span>{selected.attentionReason}</span></div> : null}
         <div className="messageHistory">
