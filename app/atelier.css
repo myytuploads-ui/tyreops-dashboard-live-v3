@@ -1,5 +1,5 @@
 /* Owner interface: unified editorial card layouts */
-.atelierLive{color:#8ba497;letter-spacing:0;margin-left:18px;text-transform:none}.atelierPriority{border-radius:24px;background:linear-gradient(135deg,#252126,#191c22 70%);padding:30px}.atelierPriority>header{display:flex;justify-content:space-between;gap:20px;align-items:center}.atelierPriority h2{font-size:26px;letter-spacing:-.04em;margin:10px 0}.atelierPriority p{font-size:13px;color:#a6a3ad;margin:0}.atelierUrgent{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;margin-top:28px}.atelierUrgent article{padding:22px;background:#11151b80;border-radius:18px}.atelierUrgent h3{font-size:25px;margin:20px 0 6px;letter-spacing:-.04em}.atelierUrgent p{margin-bottom:24px}.atelierUrgent .atelierButton{width:100%}.atelierUrgent small{color:#9196a0}.atelierToday{padding:32px 4px 0}.atelierHomeColumns{display:grid;grid-template-columns:1.5fr 1fr;gap:40px;margin-top:20px}.atelierSectionHeading{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px}.atelierSectionHeading h2{font-size:19px;letter-spacing:-.03em}.atelierSectionHeading a{font-size:12px;color:#a3a9b2}.atelierActiveRow{display:flex;gap:16px;align-items:center;padding:19px 0;border-top:1px solid #ffffff0a}.atelierActiveRow>div{flex:1}.atelierActiveRow strong{font-size:15px}.atelierActiveRow p,.atelierActivity p{font-size:12px;color:#89939f;margin:6px 0 0}.atelierWheel{display:grid;place-items:center;border-radius:14px;width:44px;height:44px;background:#1f242b;font-size:26px;color:#8e99a5}.atelierActivity{display:flex;gap:16px;padding:16px 0}.atelierActivity i{width:7px;height:7px;border-radius:50%;background:#777b83;margin-top:5px;flex-shrink:0}.atelierActivity strong{font-size:12px;text-transform:capitalize;font-weight:500}.atelierQuiet{font-size:12px;color:#86909d;line-height:1.7;padding:16px 0}.atelierCatalogueWheel{font-size:70px;line-height:1;color:#555e6a;margin:0 0 28px}.loginWrap{background:radial-gradient(ellipse at 20% 10%,#39232b 0,transparent 45%),#101318!important}.loginCard{max-width:460px;width:calc(100% - 40px);padding:44px!important;border:1px solid #ffffff09!important;background:#191c22!important;border-radius:28px!important;box-shadow:0 28px 90px #0004!important}.loginCard h1{font-size:42px!important;letter-spacing:-.06em;line-height:1.04;margin:24px 0 16px;text-transform:none!important}.loginCard p{font-size:14px;color:#a5abb6;margin-bottom:32px}.loginCard input{background:#11151b;min-height:52px;width:100%;min-width:0}.loginCard button{min-height:52px}.productApp:has(.loginWrap) .mobileDock,.productApp:has(.loginWrap) .productSidebar{display:none}
+.atelierLive{color:#8ba497;letter-spacing:0;margin-left:18px;text-transform:none}.atelierPriority{border-radius:24px;background:linear-gradient(135deg,#252126,#191c22 70%);padding:24px}.atelierPriority>header{display:flex;justify-content:space-between;gap:20px;align-items:center}.atelierPriority h2{font-size:26px;letter-spacing:-.04em;margin:10px 0}.atelierPriority p{font-size:13px;color:#a6a3ad;margin:0}.atelierUrgent{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin-top:20px}.atelierUrgent article{padding:22px;background:#11151b80;border-radius:18px}.atelierUrgent h3{font-size:25px;margin:20px 0 6px;letter-spacing:-.04em}.atelierUrgent p{margin-bottom:24px}.atelierUrgent .atelierButton{width:100%}.atelierUrgent small{color:#9196a0}.atelierToday{padding:32px 4px 0}.atelierHomeColumns{display:grid;grid-template-columns:1.5fr 1fr;gap:40px;margin-top:20px}.atelierSectionHeading{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px}.atelierSectionHeading h2{font-size:19px;letter-spacing:-.03em}.atelierSectionHeading a{font-size:12px;color:#a3a9b2}.atelierActiveRow{display:flex;gap:16px;align-items:center;padding:19px 0;border-top:1px solid #ffffff0a}.atelierActiveRow>div{flex:1}.atelierActiveRow strong{font-size:15px}.atelierActiveRow p,.atelierActivity p{font-size:12px;color:#89939f;margin:6px 0 0}.atelierWheel{display:grid;place-items:center;border-radius:14px;width:44px;height:44px;background:#1f242b;font-size:26px;color:#8e99a5}.atelierActivity{display:flex;gap:16px;padding:16px 0}.atelierActivity i{width:7px;height:7px;border-radius:50%;background:#777b83;margin-top:5px;flex-shrink:0}.atelierActivity strong{font-size:12px;text-transform:capitalize;font-weight:500}.atelierQuiet{font-size:12px;color:#86909d;line-height:1.7;padding:16px 0}.atelierCatalogueWheel{font-size:70px;line-height:1;color:#555e6a;margin:0 0 28px}.loginWrap{background:radial-gradient(ellipse at 20% 10%,#39232b 0,transparent 45%),#101318!important}.loginCard{max-width:460px;width:calc(100% - 40px);padding:44px!important;border:1px solid #ffffff09!important;background:#191c22!important;border-radius:28px!important;box-shadow:0 28px 90px #0004!important}.loginCard h1{font-size:42px!important;letter-spacing:-.06em;line-height:1.04;margin:24px 0 16px;text-transform:none!important}.loginCard p{font-size:14px;color:#a5abb6;margin-bottom:32px}.loginCard input{background:#11151b;min-height:52px;width:100%;min-width:0}.loginCard button{min-height:52px}.productApp:has(.loginWrap) .mobileDock,.productApp:has(.loginWrap) .productSidebar{display:none}
 .fitterControlCard{background:#191d23;border:1px solid #ffffff08;border-radius:22px;padding:24px}.fitterPerformance>div{background:transparent;border:0}.fitterControlTop{margin-bottom:20px}.fitterAvatar{border-radius:50%;background:#2b3039;color:#c5cbd4}.fitterActions button{border-radius:12px}.operationsInbox .inboxShell{border-color:#ffffff08;border-radius:22px;background:#12161c}.operationsInbox .conversationItem{border-bottom-color:#ffffff08;padding:22px 18px}.operationsInbox .messageBubble{border:0;border-radius:18px;box-shadow:none}.operationsInbox .messageHistory{gap:18px;background:#10141a}.conversationSearch{background:#1c2129;border-color:transparent}.conversationHeader{border-bottom-color:#ffffff08}.conversationComposer{background:#171c23;border-top-color:#ffffff08}
 @media(max-width:720px){.atelierPriority{padding:22px;border-radius:22px}.atelierPriority>header{display:block}.atelierPriority>header>.atelierButton{margin-top:20px}.atelierPriority h2{font-size:25px}.atelierUrgent{grid-template-columns:1fr}.atelierUrgent article{padding:18px}.atelierHomeColumns{grid-template-columns:1fr;gap:20px}.atelierActiveRow{gap:10px;flex-wrap:wrap}.atelierActiveRow .badge{font-size:8px;max-width:110px}.atelierToday{padding-top:28px}.loginCard{padding:28px!important}.loginCard h1{font-size:38px!important}.fitterControlCard{padding:20px}}
 .atelierPage{max-width:1280px;margin:auto}.atelierHeading{display:flex;justify-content:space-between;align-items:center;gap:24px;margin:12px 0 36px}.atelierHeading h1,.atelierCommand h1{font-size:clamp(32px,4vw,52px);line-height:1.05;letter-spacing:-.055em;margin:12px 0;font-weight:650}.atelierHeading p{color:#989da5;line-height:1.6;margin:0}.eyebrow{font-size:10px;letter-spacing:.16em;color:#8f949e}.atelierSearch{display:flex;gap:14px;background:#181b20;border-radius:16px;padding:8px;margin-bottom:18px}.atelierSearch input{flex:1;min-width:0;background:none;border:0;color:white;padding:12px;font:inherit;outline:none}.atelierSearch select{background:#20242a;border:0;max-width:42%}.atelierTabs{display:flex;gap:8px;margin:0 0 28px}.atelierTabs button{border:0;border-radius:10px;background:none;color:#a1a6af;padding:12px 16px;font:inherit;cursor:pointer}.atelierTabs button.selected{background:#25282e;color:white}.atelierTabs span{margin-left:8px;color:#9298a3}.atelierJobs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px}.atelierJob{padding:24px;background:linear-gradient(150deg,#1b1e24,#14171c);border-radius:22px;border:1px solid #ffffff08;transition:transform .2s}.atelierJob:hover{transform:translateY(-3px)}.atelierJobMeta{display:flex;align-items:center;justify-content:space-between;gap:8px}.atelierJobMeta>span:last-child{font-size:10px;color:#858b96}.atelierJob h2{font-size:27px;letter-spacing:-.035em;margin:24px 0 6px}.atelierTyre{color:#c2c6ce;font-size:15px;margin:0 0 26px}.atelierCustomer{display:flex;gap:12px;align-items:center}.atelierAvatar{width:36px;height:36px;background:#2b3039;border-radius:50%;display:grid;place-items:center;color:#cbd0d9}.atelierCustomer strong,.atelierCustomer div span{display:block;font-size:12px}.atelierCustomer div span{color:#858b96;margin-top:4px}.atelierJob footer{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:24px;padding-top:18px;border-top:1px solid #ffffff08}.atelierJob small{color:#777e89;font-size:10px}.atelierButton{display:inline-flex;align-items:center;justify-content:center;gap:16px;padding:12px 16px;border:1px solid #ffffff10;background:#242830;border-radius:12px;font-size:12px;font-weight:650;min-height:44px}.atelierButton.primary{background:#ed3047;border-color:transparent;color:white}.atelierEmpty{text-align:center;padding:72px 20px;color:#969da8}.atelierEmpty>span{font-size:32px;color:#bec8c1}.atelierEmpty h2{color:#eee}.atelierCommand{margin:8px 0 30px}.atelierBack{display:inline-block;color:#949ba6;font-size:13px;margin-bottom:32px}.atelierCommandTop{display:flex;justify-content:space-between;align-items:center;gap:20px}.atelierCommandTop p{font-size:20px;color:#b7bdc6;margin:0 0 12px}.atelierCommandTop small{color:#737c89}.atelierProgress{display:grid;grid-template-columns:repeat(7,1fr);margin-top:36px;gap:6px}.atelierProgress>div{display:grid;gap:10px;position:relative;color:#626a76;font-size:11px}.atelierProgress i{display:grid;place-items:center;width:28px;height:28px;border-radius:50%;background:#20252c;font-style:normal}.atelierProgress .reached{color:#e0e2e6}.atelierProgress .reached i{background:#d82d42;color:white}.atelierDetailGrid{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:24px}.atelierSurface{background:#171b20;border-radius:20px;padding:26px}.atelierSurface h2{font-size:23px;letter-spacing:-.03em}.atelierSurface p,.atelierSurface small{color:#969fab;line-height:1.6}.atelierContactActions{display:flex;gap:8px;flex-wrap:wrap;margin:22px 0}.atelierMoneyRow{display:flex;flex-wrap:wrap;gap:32px;padding:24px 0;margin:0 0 28px;border-top:1px solid #ffffff0d;border-bottom:1px solid #ffffff0d}.atelierMoneyRow span{display:block;color:#949aa5;font-size:12px}.atelierMoneyRow strong{display:block;font-size:26px;letter-spacing:-.04em;margin-top:8px}.atelierMore{max-width:920px}.atelierMenu{display:grid;grid-template-columns:1fr 1fr;gap:12px}.atelierMenu>a{display:flex;align-items:center;gap:18px;padding:22px;border-radius:16px;background:#181c22}.atelierMenu>a>span:last-child{margin-left:auto;color:#7b8490}.atelierMenu strong{font-size:15px}.atelierMenu p{font-size:12px;color:#8e98a5;margin:6px 0 0}.atelierMenuIcon{font-size:25px;color:#b1b9c4;width:30px;text-align:center}.atelierDiagnostics{margin-top:30px;color:#89929f;padding:20px 0}.atelierDiagnostics summary{cursor:pointer}.atelierDiagnostics a{display:block;padding:14px}.badge{font-size:9px;letter-spacing:.035em;border:0;padding:6px 9px}.badge.awaiting_owner_price{background:#eec35a1a;color:#e6c471}.headline h1{text-transform:none;letter-spacing:-.045em}.activityPanel{display:block!important}.homeV2Footer{display:none}.productMain{max-width:1540px}.productSidebar{background:#0f1216}.mobileDock{box-shadow:0 -6px 30px #0003!important}.productBrandMark{box-shadow:none!important}
@@ -10,10 +10,10 @@
 .atelierJobLink{display:block;color:inherit;cursor:pointer}
 .atelierJobLink:focus-visible,.atelierUrgentCard:focus-visible{outline:2px solid #ed3047;outline-offset:2px}
 .atelierJobLink .atelierButton,.atelierUrgentCard .atelierButton{pointer-events:none}
-.atelierUrgentCard{display:block;padding:22px;background:#11151bcc;border-radius:18px;color:inherit;border:1px solid #ffffff08;transition:transform .18s ease,border-color .18s ease,background .18s ease}
+.atelierUrgentCard{display:block;padding:16px 18px;background:#11151bcc;border-radius:18px;color:inherit;border:1px solid #ffffff08;transition:transform .18s ease,border-color .18s ease,background .18s ease}
 .atelierUrgentCard:hover{transform:translateY(-2px);border-color:#ed304744;background:#161a22}
-.atelierUrgentCard h3{font-size:25px;margin:20px 0 6px;letter-spacing:-.04em}
-.atelierUrgentCard p{margin-bottom:24px;color:#a6a3ad}
+.atelierUrgentCard h3{font-size:25px;margin:14px 0 4px;letter-spacing:-.04em}
+.atelierUrgentCard p{margin-bottom:14px;color:#a6a3ad}
 .atelierUrgentCard .atelierButton{width:100%}
 .atelierUrgent{gap:16px}
 .atelierUrgent article{display:none}
@@ -51,4 +51,70 @@
   .atelierCommandActions .atelierButton{flex:1 1 calc(50% - 8px)}
   .conversationHeaderActions{flex-wrap:wrap}
   .ownerActionPanel .btn.primary{width:100%}
+}
+
+/* Polish: Take over lives with customer controls */
+.atelierContactActions .atelierConversationControls{display:inline-flex;flex-direction:row;align-items:center;width:auto;gap:8px}
+.atelierContactActions .atelierConversationControls .atelierButton{min-width:0;width:auto}
+.atelierNextStep .atelierButton.primary{min-width:132px;flex:none}
+@media(max-width:720px){
+  .atelierContactActions .atelierConversationControls,.atelierContactActions .atelierConversationControls .atelierButton{width:100%}
+  .atelierUrgentCard{padding:14px 16px}
+  .atelierUrgentCard .atelierButton.primary{min-height:48px;font-size:13px}
+}
+
+/* Calm owner earnings — compact, Needs You stays primary */
+.atelierEarningsStrip{display:flex;align-items:center;gap:18px;flex-wrap:wrap;margin:0 0 18px;padding:10px 2px 14px;border-bottom:1px solid #ffffff0a}
+.atelierEarningsStrip>.eyebrow{flex:none;margin:0}
+.atelierEarningsFigures{display:flex;gap:22px;flex:1;min-width:0;flex-wrap:wrap}
+.atelierEarningsFigures>div{min-width:0}
+.atelierEarningsFigures span{display:block;font-size:10px;color:#8f949e;letter-spacing:.04em}
+.atelierEarningsFigures strong{display:block;margin-top:3px;font-size:18px;letter-spacing:-.03em;font-weight:650}
+.atelierEarningsLink{font-size:12px;color:#a3a9b2;flex:none}
+.atelierEarningsBreakdown{margin:0 0 22px;padding:0 2px}
+.atelierEarningsPeriodGrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px;margin-top:12px}
+.atelierEarningsPeriod span{display:block;font-size:11px;color:#8f949e}
+.atelierEarningsPeriod strong{display:block;margin-top:6px;font-size:28px;letter-spacing:-.04em;font-weight:650}
+.atelierEarningsPeriod p{margin:6px 0 0;font-size:12px;color:#89939f}
+@media(max-width:720px){
+  .atelierEarningsStrip{gap:10px;margin-bottom:14px;padding-bottom:12px}
+  .atelierEarningsFigures{gap:14px}
+  .atelierEarningsFigures strong{font-size:16px}
+  .atelierEarningsPeriodGrid{grid-template-columns:1fr;gap:14px}
+  .atelierEarningsPeriod strong{font-size:24px}
+}
+
+.atelierEarningsStrip{display:flex;align-items:center;gap:18px;flex-wrap:wrap;margin:0 0 18px;padding:10px 2px 14px;border-bottom:1px solid #ffffff0a}
+.atelierEarningsStrip>.eyebrow{flex:none;margin:0}
+.atelierEarningsFigures{display:flex;gap:22px;flex:1;min-width:0;flex-wrap:wrap}
+.atelierEarningsFigures span{display:block;font-size:10px;color:#8f949e;letter-spacing:.04em}
+.atelierEarningsFigures strong{display:block;margin-top:3px;font-size:18px;letter-spacing:-.03em;font-weight:650}
+.atelierEarningsLink{font-size:12px;color:#a3a9b2;flex:none}
+.atelierEarningsBreakdown{margin:0 0 22px;padding:0 2px}
+.atelierEarningsPeriodGrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px;margin-top:12px}
+.atelierEarningsPeriod span{display:block;font-size:11px;color:#8f949e}
+.atelierEarningsPeriod strong{display:block;margin-top:6px;font-size:28px;letter-spacing:-.04em;font-weight:650}
+.atelierEarningsPeriod p{margin:6px 0 0;font-size:12px;color:#89939f}
+.atelierSettlementCard{display:grid;grid-template-columns:1.4fr 1fr;gap:18px;margin:0 0 22px;padding:20px 22px;border-radius:18px;background:linear-gradient(135deg,#1a221c,#14181e 70%);border:1px solid #ffffff0c}
+.atelierSettlementCard .eyebrow{display:block;margin-bottom:8px}
+.atelierSettlementOwed strong{display:block;font-size:34px;letter-spacing:-.045em;font-weight:650}
+.atelierSettlementSent strong{display:block;font-size:28px;letter-spacing:-.03em;font-weight:650}
+.atelierSettlementCard p{margin:8px 0 0;color:#96a094;font-size:13px;line-height:1.45}
+.sent-yes{color:#79e6a3}.sent-no{color:#ffb070}.sent-unknown{color:#aeb6c0}
+.atelierFitterRemit{margin:8px 0 28px}
+.atelierPeriodFilters{display:flex;gap:8px;flex-wrap:wrap}
+.atelierPeriodFilters a{padding:8px 12px;border-radius:999px;font-size:12px;color:#9aa3ae;background:#181c22}
+.atelierPeriodFilters a.active{background:#ed3047;color:#fff}
+.atelierRemitTotal{display:flex;justify-content:space-between;align-items:baseline;gap:12px;margin:14px 0 16px;padding:14px 0;border-top:1px solid #ffffff0a;border-bottom:1px solid #ffffff0a}
+.atelierRemitTotal span{color:#949aa5;font-size:12px}.atelierRemitTotal strong{font-size:28px;letter-spacing:-.04em}
+.atelierRemitList{display:grid;gap:0}
+.atelierRemitRow{display:flex;justify-content:space-between;gap:16px;align-items:center;padding:16px 2px;border-bottom:1px solid #ffffff0a;color:inherit}
+.atelierRemitRow strong{font-size:15px}.atelierRemitRow p{margin:5px 0 0;font-size:12px;color:#89939f}
+.atelierRemitRowRight{text-align:right}.atelierRemitRowRight strong{display:block;font-size:14px}.atelierRemitRowRight span{display:block;margin-top:5px;font-size:11px}
+@media(max-width:720px){
+  .atelierEarningsStrip{gap:10px;margin-bottom:14px;padding-bottom:12px}
+  .atelierEarningsFigures{gap:14px}.atelierEarningsFigures strong{font-size:16px}
+  .atelierEarningsPeriodGrid{grid-template-columns:1fr;gap:14px}.atelierEarningsPeriod strong{font-size:24px}
+  .atelierSettlementCard{grid-template-columns:1fr;padding:18px}.atelierSettlementOwed strong{font-size:30px}
+  .atelierRemitRow{align-items:flex-start;flex-direction:column}.atelierRemitRowRight{text-align:left}
 }

@@ -93,7 +93,7 @@ export default function ManagerActions({ job, offers, fitters, depositRules, fir
   const enteredCustomerPrice = Number(customerPrice);
   const matchingDeposit = depositRules.find((rule) => Number(rule.min_job_value_gbp) === enteredCustomerPrice && Number(rule.max_job_value_gbp) === enteredCustomerPrice);
 
-  return <section className="panel ownerActionPanel">
+  return <section className="panel ownerActionPanel" id={isPricing ? "set-price" : undefined}>
     <div className="panelHead"><div><span className="eyebrow">DO THIS NOW</span><h2>{isPricing ? 'Set price' : isFirstRefusal ? 'Your decision' : 'Assign fitter'}</h2><p>{isPricing ? 'One confirmed price sends the payment link. Catalogue suggestions stay on this screen until you confirm.' : isFirstRefusal ? 'Take it, send it on, or snooze — nothing else matters until you decide.' : 'Pick the fitter. Customer and fitter get notified after it lands.'}</p></div></div>
     <div className="panelBody">
       {error ? <div className="error">{error}</div> : null}

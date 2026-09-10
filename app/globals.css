@@ -409,7 +409,7 @@ body:before{content:"";position:fixed;inset:0;pointer-events:none;z-index:-1;bac
 .attentionAction,.btn.primary{background:var(--product-accent);color:#fff;border-color:var(--product-accent);box-shadow:0 8px 22px rgba(255,41,69,.18)}
 .productLive i{background:var(--product-green)}
 .mobileDock{border-color:rgba(255,41,69,.28);box-shadow:0 14px 50px rgba(0,0,0,.52),0 0 24px rgba(255,41,69,.08)}
-.mobileDock a.active{background:rgba(255,41,69,.15);color:#ff6a7b}
+.mobileDock a.active{background:rgba(255,41,69,.08);color:#ed3047}
 @media(max-width:720px){
   .productMain{padding-top:calc(18px + env(safe-area-inset-top))}
   .homeV2Header{padding:3px 2px 8px}.homeV2Header h1{font-size:clamp(36px,10vw,44px)}

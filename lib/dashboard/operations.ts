@@ -114,3 +114,29 @@ export function isToday(value: unknown) {
   const now = new Date();
   return date.getFullYear() === now.getFullYear() && date.getMonth() === now.getMonth() && date.getDate() === now.getDate();
 }
+
+function startOfLocalDay(date = new Date()) {
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate());
+}
+
+/** Calendar week starting Monday (UK). */
+export function isThisWeek(value: unknown) {
+  if (!value) return false;
+  const date = new Date(String(value));
+  if (Number.isNaN(date.getTime())) return false;
+  const today = startOfLocalDay();
+  const day = (today.getDay() + 6) % 7; // Mon=0
+  const weekStart = new Date(today);
+  weekStart.setDate(today.getDate() - day);
+  const weekEnd = new Date(weekStart);
+  weekEnd.setDate(weekStart.getDate() + 7);
+  return date >= weekStart && date < weekEnd;
+}
+
+export function isThisMonth(value: unknown) {
+  if (!value) return false;
+  const date = new Date(String(value));
+  if (Number.isNaN(date.getTime())) return false;
+  const now = new Date();
+  return date.getFullYear() === now.getFullYear() && date.getMonth() === now.getMonth();
+}

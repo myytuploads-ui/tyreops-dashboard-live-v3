@@ -7,6 +7,7 @@ import { createAdminClient } from '@/lib/supabase/admin';
 import GroupDispatchCard from './GroupDispatchCard';
 import ManagerActions from './ManagerActions';
 import ConversationControls from './ConversationControls';
+import { fitterSentState, fitterToSendAmount, owedNowAmount } from '@/lib/dashboard/settlement-display';
 
 type Row = Record<string, any>;
 
@@ -66,7 +67,7 @@ function compactEvents(events: Row[]) {
 
 function nextStepCopy(status: unknown, ownerNeeded: boolean) {
   const s = String(status || '').toLowerCase();
-  if (s === 'awaiting_owner_price') return { title: 'Set the customer price', body: 'Confirm the quote below. TyreOps sends the payment link.' };
+  if (s === 'awaiting_owner_price') return { title: 'Set price', body: 'Confirm the quote below. TyreOps sends the payment link.' };
   if (s === 'awaiting_owner_first_refusal') return { title: 'Your call on this job', body: 'Take it, send it on, or snooze — one tap.' };
   if (s === 'awaiting_group_dispatch') return { title: 'Find a group fitter', body: 'Copy the group message, then assign an offer when it lands.' };
   if (['offers_received', 'awaiting_owner_assignment', 'deposit_paid'].includes(s)) return { title: 'Choose a fitter', body: 'Assign someone now so the customer gets moving.' };
@@ -81,11 +82,12 @@ function nextStepCopy(status: unknown, ownerNeeded: boolean) {
 export default async function JobDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const supabase = await createClient();
-  const [jobRes, offersRes, eventsRes, paymentsRes] = await Promise.all([
+  const [jobRes, offersRes, eventsRes, paymentsRes, settlementRes] = await Promise.all([
     supabase.from('jobs').select('*').eq('id', id).maybeSingle(),
     supabase.from('fitter_offers').select('*').eq('job_id', id).order('submitted_at', { ascending: false }),
     supabase.from('workflow_events').select('*').eq('job_id', id).order('created_at', { ascending: false }).limit(120),
     supabase.from('payments').select('*').eq('job_id', id).order('created_at', { ascending: false }).limit(20),
+    supabase.from('job_settlements').select('job_id,customer_agreed_total,deposit_received,customer_remaining_balance,fitter_agreed_cost,rescue_tyres_entitlement,settlement_outstanding,settlement_status,created_at').eq('job_id', id).maybeSingle(),
   ]);
 
   const job: Row | null = jobRes.data;
@@ -101,6 +103,7 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
   const fitterMap = Object.fromEntries(fitters.map((fitter) => [fitter.id, fitter]));
   const payments = paymentsRes.data || [];
   const events = eventsRes.data || [];
+  const settlement = settlementRes.data || null;
   const assigned = fitterMap[job.assigned_fitter_id];
   const grossMargin = margin(job.customer_price, job.agreed_fitter_cost);
   const problems = jobProblems(job, payments, events);
@@ -148,19 +151,40 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
           <Link className="atelierButton" href={`/conversations?job=${job.id}`}>Inbox</Link>
         </div>
       </div>
-      <section className={`atelierNextStep${ownerNeeded ? ' needsYou' : ''}`}>
+            <section className={`atelierNextStep${ownerNeeded ? ' needsYou' : ''}`}>
         <div>
           <span className="eyebrow">{ownerNeeded ? 'NEXT FOR YOU' : 'STATUS'}</span>
           <h2>{next.title}</h2>
           <p>{next.body}</p>
         </div>
-        <ConversationControls jobId={job.id} mode={String(job.conversation_mode || '')} />
+        {String(job.status || '').toLowerCase() === 'awaiting_owner_price'
+          ? <a className="atelierButton primary" href="#set-price">Set price</a>
+          : null}
       </section>
       <div className="atelierProgress" aria-hidden="true">{['Enquiry','Quote','Deposit','Fitter','On route','Fitting','Complete'].map((label,i)=>{const stage=job.status==='completed'?6:job.status==='in_progress'||job.status==='arrived'?5:job.status==='fitter_on_route'||job.status==='on_route'?4:job.assigned_fitter_id?3:job.deposit_verified_at?2:job.customer_price!=null?1:0;return <div className={i<=stage?'reached':''} key={label}><i>{i<stage?'✓':i+1}</i><span>{label}</span></div>})}</div>
     </header>
 
     <ManagerActions job={job as any} offers={offers} fitters={fitters} depositRules={depositRules} firstRefusalReady={Boolean(process.env.TYREOPS_FIRST_REFUSAL_URL?.trim())} assignmentReady={Boolean(process.env.TYREOPS_FITTER_ASSIGNMENT_URL?.trim())} suggestedQuote={suggestedQuote as any} />
     {job.status === 'awaiting_group_dispatch' ? <GroupDispatchCard jobId={job.id} tyreSize={job.tyre_size || ''} quantity={job.tyre_quantity} area={job.postcode || job.postcode_area || ''} /> : null}
+
+    {String(job.status || '').toLowerCase() === 'completed' ? (() => {
+      const owed = owedNowAmount(settlement, job);
+      const toSend = fitterToSendAmount(settlement, job);
+      const sent = fitterSentState(settlement);
+      return <section className="atelierSettlementCard" aria-label="Settlement">
+        <div className="atelierSettlementOwed">
+          <span className="eyebrow">OWED RIGHT NOW</span>
+          <strong>{owed === null ? '—' : money(owed)}</strong>
+          <p>{toSend !== null && toSend > 0 ? `Fitter to send ${money(toSend)}` : sent.label === 'Yes' ? 'Nothing outstanding from the fitter.' : settlement ? 'Settlement on file — amount unclear.' : 'No settlement record yet.'}</p>
+        </div>
+        <div className="atelierSettlementSent">
+          <span className="eyebrow">FITTER SENT IT?</span>
+          <strong className={`sent-${sent.label.toLowerCase()}`}>{sent.label}</strong>
+          <p>{sent.detail}</p>
+        </div>
+      </section>;
+    })() : null}
+
 
     {[job.customer_price,job.deposit_amount,job.remaining_customer_balance,job.agreed_fitter_cost].some(v=>v!=null) && <section className="atelierMoneyRow">{[['Customer total',job.customer_price],['Deposit',job.deposit_amount],['Balance',job.remaining_customer_balance],['Fitter cost',job.agreed_fitter_cost],['Gross margin',grossMargin]].filter(([,v])=>v!=null).map(([label,value])=><div key={String(label)}><span>{label}</span><strong>{money(value)}</strong></div>)}</section>}
 
@@ -169,11 +193,12 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
         <span className="eyebrow">CUSTOMER</span>
         <h2>{job.customer_name || 'Customer'}</h2>
         {job.customer_phone && <p>{job.customer_phone}</p>}
-        <div className="atelierContactActions">
+                <div className="atelierContactActions">
           {tel ? <a className="atelierButton" href={tel}>Call</a> : null}
           {wa ? <a className="atelierButton" href={wa} target="_blank" rel="noreferrer">WhatsApp</a> : null}
           {maps ? <a className="atelierButton" href={maps} target="_blank" rel="noreferrer">Maps</a> : null}
-          <Link className="atelierButton primary" href={`/conversations?job=${job.id}`}>Open conversation</Link>
+          <Link className="atelierButton" href={`/conversations?job=${job.id}`}>Open conversation</Link>
+          <ConversationControls jobId={job.id} mode={String(job.conversation_mode || '')} />
         </div>
         <small>{String(job.conversation_mode).toLowerCase()==='human' ? 'You are handling this conversation' : 'AI is handling this conversation'}</small>
       </section>

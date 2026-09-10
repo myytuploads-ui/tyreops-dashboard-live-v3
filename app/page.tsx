@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
-import { ACTIVE_JOB_STATUSES, IN_PROGRESS_STATUSES, expectedMargin, isToday, jobProblems, needsYou, validMoney } from '@/lib/dashboard/operations';
+import { ACTIVE_JOB_STATUSES, IN_PROGRESS_STATUSES, expectedMargin, isToday, isThisMonth, isThisWeek, jobProblems, needsYou, validMoney } from '@/lib/dashboard/operations';
 import { isTestJob } from '@/lib/dashboard/filters';
 import { useAuthoritativePolling } from '@/lib/dashboard/use-authoritative-polling';
 import StatusBadge from '@/components/StatusBadge';
@@ -20,7 +20,7 @@ const age = (value: unknown) => {
 
 function actionCopy(job: Row) {
   const status = String(job.status || '').toLowerCase();
-  if (status === 'awaiting_owner_price') return ['Price needed', 'Set customer price'];
+  if (status === 'awaiting_owner_price') return ['Price needed', 'Set price'];
   if (status === 'awaiting_owner_first_refusal') return ['Your decision', 'Accept or release job'];
   if (['offers_received', 'awaiting_owner_assignment'].includes(status)) return ['Fitter decision', 'Review fitter offers'];
   if (status === 'deposit_paid') return ['Ready to assign', 'Choose a fitter'];
@@ -100,6 +100,14 @@ export default function HomePage() {
     return sum + amount;
   }, 0);
 
+  const sumOwnerEarnings = (predicate: (job: Row) => boolean) => {
+    const values = visible.filter((job) => job.status === 'completed' && predicate(job)).map(expectedMargin).filter((value): value is number => value !== null);
+    return values.length ? values.reduce((sum, value) => sum + value, 0) : 0;
+  };
+  const earningsToday = sumOwnerEarnings((job) => isToday(job.completed_at));
+  const earningsWeek = sumOwnerEarnings((job) => isThisWeek(job.completed_at));
+  const earningsMonth = sumOwnerEarnings((job) => isThisMonth(job.completed_at));
+
   const jobById = new Map(visible.map((job) => [String(job.id), job]));
   const recentEvents = events.filter((event) => visibleIds.has(String(event.job_id))).slice(0, 6);
   const hour = new Date().getHours();
@@ -109,6 +117,15 @@ export default function HomePage() {
     <header className="atelierHeading"><div><span className="eyebrow">RESCUE TYRES <span className="atelierLive">● Live</span></span><h1>{greeting}.</h1><p>Your day, under control.</p></div><label className="compactCheck"><input type="checkbox" checked={showTests} onChange={e=>setShowTests(e.target.checked)}/> Test records</label></header>
     {error && <div className="error">{error}</div>}
     {loading ? <div className="atelierEmpty">Bringing your day into view…</div> : <>
+    <section className="atelierEarningsStrip" aria-label="Owner earnings">
+      <span className="eyebrow">YOUR EARNINGS</span>
+      <div className="atelierEarningsFigures">
+        <div><span>Today</span><strong>{money(earningsToday)}</strong></div>
+        <div><span>This week</span><strong>{money(earningsWeek)}</strong></div>
+        <div><span>This month</span><strong>{money(earningsMonth)}</strong></div>
+      </div>
+      <Link href="/money" className="atelierEarningsLink">Money ↗</Link>
+    </section>
     <section className="atelierPriority"><header><div><span className="eyebrow">NEEDS YOU</span><h2>{actionable.length ? `${actionable.length} decisions. Let's keep moving.` : 'A little breathing room.'}</h2><p>{actionable.length?'A few things need your attention.':'You’re all caught up. New decisions will appear here.'}</p></div><Link href="/jobs?view=needs-you" className="atelierButton">View queue ↗</Link></header>
     {actionable.length>0 && <div className="atelierUrgent">{actionable.slice(0,3).map(job=>{const [label,action]=actionCopy(job);return <Link className="atelierUrgentCard" key={job.id} href={`/jobs/${job.id}`}><div className="atelierJobMeta"><span className="badge awaiting_owner_price">{label}</span><small>{age(job.updated_at || job.created_at)}</small></div><h3>{job.postcode || job.postcode_area || 'Location pending'}</h3><p>{job.tyre_size || 'Tyre details pending'}{job.tyre_quantity?` × ${job.tyre_quantity}`:''}</p><span className="atelierButton primary">{action} ↗</span></Link>})}</div>}
     </section>
