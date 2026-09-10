@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { createClient } from '@/lib/supabase/client';
 
 export type ConversationMode = 'ai' | 'human';
 export type MessageActor = 'ai' | 'owner' | 'operator' | 'system' | 'unknown';
@@ -124,6 +125,7 @@ export default function ConversationsInbox({ conversations, notices = [], initia
 
   useEffect(() => {
     let guardTimer: number | undefined;
+    const selectedJobId = selected?.jobId || null;
 
     function refreshAuthoritativeData() {
       if (document.visibilityState !== 'visible' || refreshGuard.current || requestInFlight.current || replyInFlight.current) return;
@@ -136,14 +138,31 @@ export default function ConversationsInbox({ conversations, notices = [], initia
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') refreshAuthoritativeData();
     };
+    const handleFocus = () => refreshAuthoritativeData();
     document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('focus', handleFocus);
+
+    // Prefer Realtime on messages for the open job_id; polling remains as fallback.
+    const supabase = createClient();
+    const channel = selectedJobId
+      ? supabase
+          .channel(`messages-job-${selectedJobId}`)
+          .on(
+            'postgres_changes',
+            { event: '*', schema: 'public', table: 'messages', filter: `job_id=eq.${selectedJobId}` },
+            () => refreshAuthoritativeData()
+          )
+          .subscribe()
+      : null;
 
     return () => {
       window.clearInterval(interval);
       if (guardTimer !== undefined) window.clearTimeout(guardTimer);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('focus', handleFocus);
+      if (channel) void supabase.removeChannel(channel);
     };
-  }, [router]);
+  }, [router, selected?.jobId]);
 
   function selectConversation(id: string) {
     setSelectedId(id);
