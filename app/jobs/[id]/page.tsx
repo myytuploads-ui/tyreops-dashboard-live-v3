@@ -158,8 +158,10 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
           <p>{next.body}</p>
         </div>
         {String(job.status || '').toLowerCase() === 'awaiting_owner_price'
-          ? <a className="atelierButton primary" href="#set-price">Set price</a>
-          : null}
+          ? <a className="atelierButton" href="#set-price">Go to price ↗</a>
+          : ownerNeeded
+            ? <a className="atelierButton" href="#owner-action">Take action ↗</a>
+            : null}
       </section>
       <div className="atelierProgress" aria-hidden="true">{['Enquiry','Quote','Deposit','Fitter','On route','Fitting','Complete'].map((label,i)=>{const stage=job.status==='completed'?6:job.status==='in_progress'||job.status==='arrived'?5:job.status==='fitter_on_route'||job.status==='on_route'?4:job.assigned_fitter_id?3:job.deposit_verified_at?2:job.customer_price!=null?1:0;return <div className={i<=stage?'reached':''} key={label}><i>{i<stage?'✓':i+1}</i><span>{label}</span></div>})}</div>
     </header>

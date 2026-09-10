@@ -8,11 +8,14 @@ export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [message, setMessage] = useState('');
+  const [messageTone, setMessageTone] = useState<'quiet' | 'warn'>('quiet');
   const [loading, setLoading] = useState(false);
+  const [resetting, setResetting] = useState(false);
 
   async function submit(e: FormEvent) {
     e.preventDefault();
     setMessage('');
+    setMessageTone('warn');
     setLoading(true);
 
     try {
@@ -32,7 +35,8 @@ export default function LoginPage() {
         return;
       }
 
-      setMessage('Sign-in succeeded. Verifying dashboard access…');
+      setMessageTone('quiet');
+      setMessage('Signed in. Opening your day…');
       window.location.assign('/');
     } catch (error) {
       setMessage(`Unable to contact authentication: ${error instanceof Error ? error.message : 'Unknown error.'}`);
@@ -41,17 +45,50 @@ export default function LoginPage() {
     }
   }
 
+  async function forgotPassword() {
+    setMessage('');
+    setMessageTone('warn');
+    if (!email.trim()) {
+      setMessage('Enter your email above, then try again.');
+      return;
+    }
+    setResetting(true);
+    try {
+      const redirectTo = `${window.location.origin}/login`;
+      const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), { redirectTo });
+      if (error) {
+        setMessage(`Could not send reset email: ${error.message}`);
+        return;
+      }
+      setMessageTone('quiet');
+      setMessage('If that email is registered, a reset link is on its way.');
+    } catch (error) {
+      setMessage(`Unable to start password reset: ${error instanceof Error ? error.message : 'Unknown error.'}`);
+    } finally {
+      setResetting(false);
+    }
+  }
+
   return (
     <div className="loginWrap" style={{position:'fixed', inset:0, zIndex:100}}>
       <div className="loginCard">
-        <span className="eyebrow">RESCUE TYRES</span>
+        <span className="eyebrow loginBrand">RESCUE TYRES</span>
         <h1>A smoother<br/>day starts here.</h1>
-        <p>Your jobs. Your team. Everything in hand.</p>
-        <form onSubmit={submit}>
-          <input className="input" aria-label="Email" autoComplete="email" type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="Email" required />
-          <input className="input" aria-label="Password" autoComplete="current-password" type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Password" required />
-          <button className="btn primary" disabled={loading}>{loading ? 'Signing in…' : 'Sign in'}</button>
-          {message && <div className="error">{message}</div>}
+        <p className="loginLead">Your jobs. Your team. Everything in hand.</p>
+        <form onSubmit={submit} className="loginForm">
+          <label className="loginField">
+            <span className="loginLabel">Email</span>
+            <input className="input" autoComplete="email" type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="you@example.com" required />
+          </label>
+          <label className="loginField">
+            <span className="loginLabel">Password</span>
+            <input className="input" autoComplete="current-password" type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="" required />
+          </label>
+          <button className="btn primary loginSubmit" type="submit" disabled={loading}>{loading ? 'Signing in…' : 'Sign in'}</button>
+          <button className="loginForgot" type="button" onClick={() => void forgotPassword()} disabled={resetting || loading}>
+            {resetting ? 'Sending reset…' : 'Forgot password?'}
+          </button>
+          {message ? <div className={messageTone === 'warn' ? 'error' : 'loginQuietMsg'} role="status">{message}</div> : null}
         </form>
       </div>
     </div>

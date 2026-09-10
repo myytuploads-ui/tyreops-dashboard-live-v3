@@ -118,3 +118,262 @@
   .atelierSettlementCard{grid-template-columns:1fr;padding:18px}.atelierSettlementOwed strong{font-size:30px}
   .atelierRemitRow{align-items:flex-start;flex-direction:column}.atelierRemitRowRight{text-align:left}
 }
+
+/* Red Team PURE UI - login / hierarchy / quiet errors (no redesign) */
+.loginCard .loginBrand.eyebrow{color:#d5d9e0;opacity:1;font-weight:800}
+.loginCard .eyebrow{color:#d5d9e0}
+.loginField{display:grid;gap:7px}
+.loginLabel{display:block;font-size:12px;font-weight:650;color:#b7bcc6;letter-spacing:.02em}
+.loginCard input.input,.loginCard .input{min-height:48px;font-size:16px;width:100%;min-width:0;box-sizing:border-box}
+.loginCard .btn.primary{min-height:48px;width:100%}
+.loginForgot{display:block;width:100%;margin:2px 0 0;padding:10px 0 0;border:0;background:none;color:#8f949e;font:inherit;font-size:13px;font-weight:500;text-align:center;cursor:pointer;text-decoration:underline;text-underline-offset:3px;text-decoration-color:#ffffff28}
+.loginForgot:hover{color:#c4c9d2}
+.loginForgot:disabled{opacity:.55;cursor:default}
+.loginCard .error{margin-top:4px}
+
+/* Earnings quieter than Needs You */
+.atelierEarningsStrip{opacity:.92}
+.atelierEarningsFigures strong{font-size:15px!important;font-weight:550!important;letter-spacing:-.02em;color:#c5cad3}
+.atelierEarningsFigures span{font-size:10px;color:#7f8692}
+.atelierEarningsStrip>.eyebrow{color:#7f8692;font-weight:700}
+.atelierEarningsLink{font-size:11px;color:#8f969f}
+@media(max-width:720px){
+  .loginCard input.input,.loginCard .input,.loginCard .btn.primary{min-height:48px;font-size:16px}
+  .atelierEarningsFigures strong{font-size:14px!important}
+}
+
+/* One human status line on Needs You cards */
+.atelierStatusLine{display:inline-flex;align-items:center;font-size:11px;font-weight:650;color:#e6c471;letter-spacing:.02em}
+.atelierUrgentCard .atelierJobMeta{margin-bottom:2px}
+
+/* Errors: amber/neutral - not Needs You red alarm */
+.atelierPage .error,.loginCard .error,.loginWrap .error{
+  border:1px solid rgba(238,195,90,.28);
+  background:rgba(238,195,90,.07);
+  color:#dcc58a;
+  font-size:13px;
+  font-weight:500;
+  box-shadow:none;
+}
+
+/* ===== Commercial owner UI elevation (UI-only) ===== */
+
+/* Login card proportions + type scale */
+.loginCard{max-width:412px!important;width:calc(100% - 36px);padding:36px 32px!important}
+.loginCard .loginBrand.eyebrow,.loginCard .eyebrow{color:#e4e7ee;letter-spacing:.18em;font-weight:800}
+.loginCard h1{font-size:34px!important;line-height:1.08;margin:18px 0 12px;font-weight:650}
+.loginCard .loginLead,.loginCard>p{font-size:14px;line-height:1.5;color:#9aa1ac;margin:0 0 26px}
+.loginForm{display:grid;gap:14px}
+.loginSubmit,.loginCard .btn.primary{min-height:48px;font-size:15px;border-radius:12px}
+.loginQuietMsg{padding:10px 12px;border-radius:12px;border:1px solid #ffffff12;background:#ffffff06;color:#aeb5c0;font-size:13px;font-weight:500}
+@media(max-width:720px){
+  .loginCard{padding:28px 22px!important;border-radius:24px!important}
+  .loginCard h1{font-size:30px!important}
+  .loginCard input.input,.loginCard .input,.loginSubmit,.loginCard .btn.primary{min-height:48px;font-size:16px}
+}
+
+/* Needs You shouts; clear state is calm */
+.atelierPriority.hasAttention{border:1px solid #ed304744;box-shadow:0 18px 50px #0005}
+.atelierPriority.hasAttention>.eyebrow,.atelierPriority.hasAttention header .eyebrow{color:#f0a0ab}
+.atelierPriority.isClear{background:linear-gradient(135deg,#1c2026,#171b20 70%);border:1px solid #ffffff08;box-shadow:none}
+.atelierPriority.isClear h2{font-size:22px;color:#d5dae2;font-weight:600}
+.atelierClearCopy{color:#8b929d!important;font-size:13px!important}
+.atelierQueueLink{min-height:44px;flex:none}
+.atelierHome .atelierToday{padding-top:22px;opacity:.88}
+.atelierHome .atelierToday .atelierMoneyRow strong{font-size:20px;font-weight:600;color:#c8ced7}
+.atelierHome .atelierToday .atelierMoneyRow span{font-size:11px;color:#7f8692}
+.atelierHome .atelierHeading h1{font-size:clamp(28px,4vw,40px);font-weight:650}
+.atelierHome .atelierHeading p{font-size:14px;color:#8f969f}
+
+/* Earnings whisper harder */
+.atelierEarningsStrip{opacity:.78;margin-bottom:14px;padding:6px 2px 12px}
+.atelierEarningsFigures strong{font-size:14px!important;font-weight:500!important;color:#aeb5c0!important}
+.atelierEarningsStrip>.eyebrow{color:#6f7682!important;font-size:9px}
+
+/* Job cards: denser, one status + CTA */
+.atelierJob{padding:20px}
+.atelierJob h2{font-size:24px;margin:18px 0 4px}
+.atelierTyre{margin-bottom:18px}
+.atelierJob footer .atelierButton{min-height:44px}
+.atelierUrgentCard .atelierButton{min-height:48px}
+.atelierUrgentCard .atelierButton.primary{font-size:13px;font-weight:700}
+
+/* Money: period chips graphite, not Rescue red */
+.atelierPeriodFilters a.active{background:#2a3038!important;color:#fff!important;border:1px solid #ffffff14}
+.atelierEarningsPeriod strong{font-size:26px;font-weight:600}
+.atelierRemitTotal strong{font-size:26px}
+
+/* Danger actions separated from primary */
+.btn.btnDangerQuiet,.btnDangerQuiet{border-color:rgba(238,195,90,.35)!important;color:#e6c471!important;background:rgba(238,195,90,.08)!important}
+.btn.btnDangerQuiet:hover{background:rgba(238,195,90,.14)!important}
+.firstRefusalActions{display:flex;flex-wrap:wrap;gap:8px}
+.firstRefusalActions .btn.primary{min-height:48px}
+.assignmentOffers{display:grid;gap:10px}
+.assignmentOffer{display:flex;gap:12px;align-items:center;justify-content:space-between;padding:14px;border-radius:14px;background:#12161c;border:1px solid #ffffff0a}
+.assignmentOffer .btn.primary{min-height:44px}
+
+/* System: focus, motion, tap targets, chrome cut */
+.atelierButton,.btn,.atelierTabs button,.mobileDock a,.productNav>a,.loginForgot,.atelierPeriodFilters a{
+  transition:background-color .16s ease,border-color .16s ease,color .16s ease,transform .16s ease,opacity .16s ease
+}
+.atelierButton:focus-visible,.btn:focus-visible,.loginCard .input:focus-visible,.atelierSearch input:focus-visible,.atelierTabs button:focus-visible,.mobileDock a:focus-visible,.productNav>a:focus-visible,.atelierJobLink:focus-visible,.atelierUrgentCard:focus-visible,.atelierMenu>a:focus-visible,.atelierPeriodFilters a:focus-visible{
+  outline:2px solid #ed3047;outline-offset:2px
+}
+.atelierButton,.btn{min-height:44px}
+@media(max-width:720px){
+  .atelierButton,.btn,.atelierTabs button{min-height:48px}
+  .atelierSearch input{font-size:16px;min-height:48px}
+  .mobileDock a{min-height:48px}
+  .atelierMenu>a{min-height:56px;padding:18px}
+}
+
+/* Quiet empty / loading / error across owner surfaces */
+.atelierEmpty,.modernEmpty{color:#8f969f;background:#14181e;border:1px solid #ffffff08;border-radius:20px;padding:48px 20px;text-align:center;font-size:14px}
+.atelierEmpty h2{font-size:22px;font-weight:600;color:#e8eaef;margin:10px 0 6px}
+.atelierPage .error,.loginCard .error,.loginWrap .error,.ownerActionPanel .error{
+  border:1px solid rgba(238,195,90,.28)!important;
+  background:rgba(238,195,90,.07)!important;
+  color:#dcc58a!important;
+  font-size:13px!important;
+  font-weight:500!important;
+  box-shadow:none!important
+}
+
+/* More / settings menu density */
+.atelierMore .atelierHeading h1{font-size:clamp(28px,4vw,40px)}
+.atelierMenu>a{padding:18px;border-radius:14px}
+.atelierMenuIcon{opacity:.55;font-size:18px;width:24px}
+.atelierDiagnostics{margin-top:28px;opacity:.72;font-size:13px}
+
+/* Inbox graphite consistency */
+.operationsInbox .conversationItem{min-height:64px}
+.operationsInbox .conversationSearch input{font-size:16px;min-height:44px}
+
+/* Detail next-step: never a second full red (scroll affordance only) */
+.atelierNextStep .atelierButton.primary{background:#242830!important;border:1px solid #ffffff10!important;color:#fff!important}
+.atelierNextStep .atelierButton{min-height:44px}
+
+/* ===== Visually pleasing premium graphite (ops-first beauty) ===== */
+.loginWrap{
+  background:
+    radial-gradient(ellipse 70% 45% at 18% 8%, rgba(237,48,71,.14), transparent 55%),
+    radial-gradient(ellipse 50% 40% at 88% 92%, rgba(255,255,255,.03), transparent 50%),
+    #0e1116!important;
+}
+.loginCard{
+  border:1px solid rgba(255,255,255,.08)!important;
+  background:linear-gradient(165deg,#1c2027 0%,#161a20 55%,#14181e 100%)!important;
+  box-shadow:0 30px 80px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.04)!important;
+  border-radius:26px!important;
+}
+.loginCard h1{letter-spacing:-.045em;color:#f3f5f8}
+.loginCard .input{
+  border:1px solid rgba(255,255,255,.08);
+  border-radius:12px;
+  background:#10141a;
+  transition:border-color .16s ease, box-shadow .16s ease;
+}
+.loginCard .input:focus{
+  border-color:rgba(237,48,71,.45);
+  box-shadow:0 0 0 3px rgba(237,48,71,.12);
+  outline:none;
+}
+.loginCard .btn.primary,.loginSubmit{
+  background:linear-gradient(180deg,#f03a50,#ed3047);
+  box-shadow:0 10px 28px rgba(237,48,71,.28);
+  border:0;
+  letter-spacing:.01em;
+}
+.loginCard .btn.primary:hover,.loginSubmit:hover{filter:brightness(1.05)}
+.loginForgot{letter-spacing:.01em}
+
+.atelierPriority{
+  border-radius:22px;
+  box-shadow:0 16px 40px rgba(0,0,0,.22);
+}
+.atelierPriority.hasAttention{
+  background:linear-gradient(145deg,#2a1c22,#191c22 62%);
+  border:1px solid rgba(237,48,71,.28);
+  box-shadow:0 20px 48px rgba(0,0,0,.35), 0 0 0 1px rgba(237,48,71,.08);
+}
+.atelierPriority.hasAttention h2{letter-spacing:-.035em;color:#f6f7fa}
+.atelierUrgentCard{
+  border-radius:16px;
+  background:linear-gradient(160deg,#151922,#11151bcc);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.03);
+}
+.atelierUrgentCard .atelierButton.primary{
+  background:linear-gradient(180deg,#f03a50,#ed3047);
+  box-shadow:0 8px 22px rgba(237,48,71,.25);
+  border-radius:12px;
+}
+
+.atelierJob{
+  border-radius:20px;
+  border:1px solid rgba(255,255,255,.07);
+  background:linear-gradient(155deg,#1c2027,#14181e);
+  box-shadow:0 10px 28px rgba(0,0,0,.18);
+}
+.atelierJob:hover{transform:translateY(-2px);box-shadow:0 14px 34px rgba(0,0,0,.26)}
+.atelierJob h2{letter-spacing:-.03em;font-weight:650}
+.atelierButton{
+  border-radius:12px;
+  letter-spacing:.01em;
+}
+.atelierButton.primary{
+  background:linear-gradient(180deg,#f03a50,#ed3047);
+  box-shadow:0 8px 20px rgba(237,48,71,.22);
+}
+
+.atelierSurface{
+  border:1px solid rgba(255,255,255,.07);
+  box-shadow:0 8px 24px rgba(0,0,0,.14);
+  border-radius:18px;
+}
+.atelierNextStep{
+  border-radius:16px;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.03);
+}
+.atelierNextStep.needsYou{
+  box-shadow:0 12px 32px rgba(0,0,0,.2), inset 0 1px 0 rgba(255,255,255,.03);
+}
+.ownerActionPanel{
+  border-radius:20px;
+  box-shadow:0 16px 40px rgba(0,0,0,.25);
+}
+.ownerActionPanel .btn.primary{
+  background:linear-gradient(180deg,#f03a50,#ed3047);
+  box-shadow:0 10px 24px rgba(237,48,71,.24);
+  border-radius:12px;
+}
+
+.atelierHeading h1,.atelierCommand h1{
+  letter-spacing:-.04em;
+  font-weight:650;
+  color:#f2f4f7;
+}
+.eyebrow{letter-spacing:.15em;font-weight:750}
+.atelierMoneyRow strong,.atelierEarningsPeriod strong,.atelierRemitTotal strong{
+  font-variant-numeric:tabular-nums;
+  letter-spacing:-.03em;
+}
+
+.atelierMenu>a{
+  border:1px solid rgba(255,255,255,.05);
+  background:linear-gradient(160deg,#1a1e25,#15191f);
+  box-shadow:0 6px 18px rgba(0,0,0,.12);
+}
+.atelierMenu>a:hover{
+  border-color:rgba(255,255,255,.1);
+  box-shadow:0 10px 24px rgba(0,0,0,.2);
+}
+
+.operationsInbox .inboxShell{
+  box-shadow:0 12px 32px rgba(0,0,0,.18);
+}
+.operationsInbox .conversationItem:hover{background:rgba(255,255,255,.02)}
+
+@media (prefers-reduced-motion: reduce){
+  .atelierButton,.btn,.atelierJob,.atelierUrgentCard,.atelierMenu>a,.loginCard .input{transition:none!important}
+  .atelierJob:hover,.atelierUrgentCard:hover,.atelierMenu>a:hover{transform:none}
+}

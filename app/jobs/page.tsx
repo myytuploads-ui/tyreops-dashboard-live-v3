@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
@@ -36,9 +36,14 @@ function jobCta(status: string) {
   const s = String(status || '').toLowerCase();
   if (s === 'awaiting_owner_price') return 'Set price';
   if (s === 'awaiting_payment' || s === 'payment_link_expired') return 'View payment';
-  if (['deposit_paid', 'offers_received', 'awaiting_owner_assignment', 'awaiting_group_dispatch'].includes(s)) return 'Choose fitter';
-  if (s === 'awaiting_owner_first_refusal') return 'Your decision';
+  if (s === 'awaiting_owner_first_refusal') return 'Accept or release';
+  if (['deposit_paid', 'offers_received', 'awaiting_owner_assignment', 'awaiting_group_dispatch'].includes(s)) return 'Assign fitter';
+  if (s === 'manual_review') return 'Open job';
   return 'View job';
+}
+
+function isActionableStatus(status: string) {
+  return ['awaiting_owner_price','deposit_paid','offers_received','awaiting_owner_assignment','awaiting_owner_first_refusal','awaiting_group_dispatch','payment_link_expired','manual_review'].includes(String(status||'').toLowerCase());
 }
 
 export default function JobsPage() {
@@ -94,6 +99,7 @@ export default function JobsPage() {
     return [job.public_job_id, job.customer_name, job.customer_phone, job.postcode, job.postcode_area, job.vehicle_registration, job.tyre_size, fitterNames.get(String(job.assigned_fitter_id || ''))].some((value) => String(value || '').toLowerCase().includes(needle));
   });
   const needsCount = visible.filter((job) => needsYou(job)).length;
+  const primaryJobId = filtered.find((job) => needsYou(job) || isActionableStatus(String(job.status || '')))?.id;
 
   return <div className="atelierPage">
     <header className="atelierHeading"><div><span className="eyebrow">YOUR OPERATIONS</span><h1>{needsOnly ? 'Needs you.' : 'Every job. One place.'}</h1><p>{needsOnly ? 'The decisions that keep your day moving.' : 'From the first message to the final fitting.'}</p></div><label className="compactCheck"><input type="checkbox" checked={showTests} onChange={e=>setShowTests(e.target.checked)}/> Test records</label></header>
@@ -105,7 +111,7 @@ export default function JobsPage() {
       <h2>{job.postcode || job.postcode_area || 'Location pending'}</h2>
       <p className="atelierTyre">{job.tyre_size || 'Tyre details pending'}{job.tyre_quantity ? ` × ${job.tyre_quantity}` : ''}</p>
       <div className="atelierCustomer"><span className="atelierAvatar">{String(job.customer_name || 'C').slice(0,1)}</span><div><strong>{job.customer_name || 'Customer'}</strong><span>{job.customer_phone || 'Conversation available'}</span></div></div>
-      <footer><small>{job.public_job_id || 'Job'}</small><span className={needsOnly || ['awaiting_owner_price','deposit_paid','offers_received','awaiting_owner_assignment'].includes(String(job.status||'').toLowerCase())?'atelierButton primary':'atelierButton'}>{jobCta(job.status)} <span>↗</span></span></footer>
+      <footer><small>{job.public_job_id || 'Job'}</small><span className={job.id===primaryJobId?'atelierButton primary':'atelierButton'}>{jobCta(job.status)} <span>↗</span></span></footer>
     </Link>)}</div>
     {!loading && !filtered.length && <div className="atelierEmpty"><span>✓</span><h2>{needsOnly?'All caught up.':'Nothing here yet.'}</h2><p>{needsOnly?'Your next decision will appear here.':'New enquiries will appear here as they arrive.'}</p></div>}
   </div>;

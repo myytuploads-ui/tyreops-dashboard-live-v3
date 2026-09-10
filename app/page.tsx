@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
-import { ACTIVE_JOB_STATUSES, IN_PROGRESS_STATUSES, expectedMargin, isToday, isThisMonth, isThisWeek, jobProblems, needsYou, validMoney } from '@/lib/dashboard/operations';
+import { ACTIVE_JOB_STATUSES, expectedMargin, isToday, isThisMonth, isThisWeek, needsYou, validMoney } from '@/lib/dashboard/operations';
 import { isTestJob } from '@/lib/dashboard/filters';
 import { useAuthoritativePolling } from '@/lib/dashboard/use-authoritative-polling';
 import StatusBadge from '@/components/StatusBadge';
@@ -21,24 +21,12 @@ const age = (value: unknown) => {
 function actionCopy(job: Row) {
   const status = String(job.status || '').toLowerCase();
   if (status === 'awaiting_owner_price') return ['Price needed', 'Set price'];
-  if (status === 'awaiting_owner_first_refusal') return ['Your decision', 'Accept or release job'];
-  if (['offers_received', 'awaiting_owner_assignment'].includes(status)) return ['Fitter decision', 'Review fitter offers'];
+  if (status === 'awaiting_owner_first_refusal') return ['Your decision', 'Accept or release'];
+  if (['offers_received', 'awaiting_owner_assignment'].includes(status)) return ['Fitter decision', 'Review offers'];
   if (status === 'deposit_paid') return ['Ready to assign', 'Choose a fitter'];
-  if (status === 'payment_link_expired') return ['Payment expired', 'Review customer payment'];
+  if (status === 'payment_link_expired') return ['Payment expired', 'Review payment'];
   if (status === 'manual_review') return ['Manual review', 'Open job'];
   return ['Needs attention', 'Open job'];
-}
-
-function liveCopy(job: Row) {
-  const status = String(job.status || '').toLowerCase();
-  if (status === 'fitter_on_route') return job.agreed_eta_minutes ? `On route · ${job.agreed_eta_minutes}m ETA` : 'Fitter on route';
-  if (status === 'arrived') return 'Fitter arrived';
-  if (status === 'in_progress') return 'Fitting now';
-  if (status === 'assigned') return 'Fitter assigned';
-  if (status === 'awaiting_payment') return 'Awaiting payment';
-  if (status.startsWith('dispatching_') || status === 'offers_received') return 'Finding fitter';
-  if (status === 'awaiting_owner_price') return 'Awaiting your price';
-  return status.replaceAll('_', ' ');
 }
 
 export default function HomePage() {
@@ -82,8 +70,6 @@ export default function HomePage() {
 
   const actionable = visible.filter((job) => needsYou(job, paymentsByJob.get(String(job.id)) || [], eventsByJob.get(String(job.id)) || []));
   const active = visible.filter((job) => ACTIVE_JOB_STATUSES.has(String(job.status || '').toLowerCase()));
-  const liveJobs = active.filter((job) => !actionable.includes(job)).slice(0, 7);
-  const inProgress = visible.filter((job) => IN_PROGRESS_STATUSES.has(String(job.status || '').toLowerCase()));
   const completedToday = visible.filter((job) => job.status === 'completed' && isToday(job.completed_at));
   const marginTodayValues = completedToday.map(expectedMargin).filter((value): value is number => value !== null);
   const marginToday = marginTodayValues.length ? marginTodayValues.reduce((sum, value) => sum + value, 0) : null;
@@ -126,8 +112,8 @@ export default function HomePage() {
       </div>
       <Link href="/money" className="atelierEarningsLink">Money ↗</Link>
     </section>
-    <section className="atelierPriority"><header><div><span className="eyebrow">NEEDS YOU</span><h2>{actionable.length ? `${actionable.length} decisions. Let's keep moving.` : 'A little breathing room.'}</h2><p>{actionable.length?'A few things need your attention.':'You’re all caught up. New decisions will appear here.'}</p></div><Link href="/jobs?view=needs-you" className="atelierButton">View queue ↗</Link></header>
-    {actionable.length>0 && <div className="atelierUrgent">{actionable.slice(0,3).map(job=>{const [label,action]=actionCopy(job);return <Link className="atelierUrgentCard" key={job.id} href={`/jobs/${job.id}`}><div className="atelierJobMeta"><span className="badge awaiting_owner_price">{label}</span><small>{age(job.updated_at || job.created_at)}</small></div><h3>{job.postcode || job.postcode_area || 'Location pending'}</h3><p>{job.tyre_size || 'Tyre details pending'}{job.tyre_quantity?` × ${job.tyre_quantity}`:''}</p><span className="atelierButton primary">{action} ↗</span></Link>})}</div>}
+    <section className={`atelierPriority${actionable.length?' hasAttention':' isClear'}`}><header><div><span className="eyebrow">NEEDS YOU</span><h2>{actionable.length ? (actionable.length===1 ? '1 decision waiting.' : `${actionable.length} decisions waiting.`) : 'Nothing needs you.'}</h2>{actionable.length? <p>Tap the next action. Keep the day moving.</p> : <p className="atelierClearCopy">You're clear. New owner decisions land here first.</p>}</div>{actionable.length? <Link href="/jobs?view=needs-you" className="atelierButton atelierQueueLink">Full queue ↗</Link> : null}</header>
+    {actionable.length>0 && <div className="atelierUrgent">{actionable.slice(0,2).map((job, index)=>{const [label,action]=actionCopy(job);return <Link className="atelierUrgentCard" key={job.id} href={`/jobs/${job.id}`}><div className="atelierJobMeta"><span className="atelierStatusLine">{label}</span><small>{age(job.updated_at || job.created_at)}</small></div><h3>{job.postcode || job.postcode_area || 'Location pending'}</h3><p>{job.tyre_size || 'Tyre details pending'}{job.tyre_quantity?` × ${job.tyre_quantity}`:''}</p><span className={index===0?'atelierButton primary':'atelierButton'}>{action} ↗</span></Link>})}</div>}
     </section>
     <section className="atelierToday"><span className="eyebrow">TODAY AT A GLANCE</span><div className="atelierMoneyRow"><div><span>Confirmed payments</span><strong>{money(paidRevenueToday)}</strong></div><div><span>Active jobs</span><strong>{active.length}</strong></div><div><span>Completed today</span><strong>{completedToday.length}</strong></div>{marginToday!==null && <div><span>Gross margin</span><strong>{money(marginToday)}</strong></div>}</div></section>
     <div className="atelierHomeColumns"><section><div className="atelierSectionHeading"><h2>Active now</h2><Link href="/jobs">All jobs ↗</Link></div>{active.length?active.slice(0,6).map(job=><Link className="atelierActiveRow" href={`/jobs/${job.id}`} key={job.id}><span className="atelierWheel">◎</span><div><strong>{job.postcode || job.postcode_area || 'Location pending'}</strong><p>{job.tyre_size || 'Tyre details pending'}{job.tyre_quantity?` × ${job.tyre_quantity}`:''}</p></div><StatusBadge status={job.status}/><span>↗</span></Link>):<p className="atelierQuiet">No active jobs right now.</p>}</section>

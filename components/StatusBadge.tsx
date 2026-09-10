@@ -1,4 +1,4 @@
-export default function StatusBadge({ status }: { status?: string | null }) {
+﻿export default function StatusBadge({ status }: { status?: string | null }) {
   const s = String(status || 'unknown').toLowerCase();
   const labels: Record<string, string> = {
     awaiting_details: 'Details needed',
@@ -7,7 +7,7 @@ export default function StatusBadge({ status }: { status?: string | null }) {
     payment_link_expired: 'Payment expired',
     deposit_paid: 'Deposit paid',
     awaiting_fitter: 'Fitter needed',
-    awaiting_owner_assignment: 'Choose a fitter',
+    awaiting_owner_assignment: 'Assignment needed',
     awaiting_owner_first_refusal: 'Your decision',
     awaiting_group_dispatch: 'Group dispatch',
     dispatching_preferred: 'Finding fitter',
