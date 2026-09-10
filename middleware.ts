@@ -26,7 +26,8 @@ export async function middleware(request: NextRequest) {
 
   const { data: { user } } = await supabase.auth.getUser();
   const path = request.nextUrl.pathname;
-  const publicPath = path === '/login' || path === '/unauthorised';
+  const isOgImage = path === '/opengraph-image' || path === '/twitter-image' || path.startsWith('/opengraph-image') || path.startsWith('/twitter-image');
+  const publicPath = path === '/login' || path === '/unauthorised' || isOgImage;
 
   // State-changing API routes enforce their own session and allowlist checks.
   if (path.startsWith('/api/')) return response;
@@ -55,7 +56,7 @@ export async function middleware(request: NextRequest) {
     return redirectResponse;
   }
 
-  if (publicPath) {
+  if (publicPath && !isOgImage) {
     const url = request.nextUrl.clone();
     url.pathname = '/';
     return NextResponse.redirect(url);

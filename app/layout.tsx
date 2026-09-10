@@ -5,6 +5,11 @@ import type { Metadata, Viewport } from 'next';
 import { Suspense } from 'react';
 
 export const metadata: Metadata = {
+  metadataBase: new URL(
+    process.env.VERCEL_PROJECT_PRODUCTION_URL
+      ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
+      : process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000',
+  ),
   title: 'Rescue Tyres · Owner OS',
   description: 'Rescue Tyres owner app — mobile tyre operations from enquiry to completion.',
   applicationName: 'Rescue Tyres',
