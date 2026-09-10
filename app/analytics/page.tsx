@@ -11,6 +11,8 @@ import {
 } from '@/lib/dashboard/operations';
 import { fitterToSendAmount } from '@/lib/dashboard/settlement-display';
 
+export const dynamic = 'force-dynamic';
+
 const gbp = (value: unknown) =>
   value == null || Number.isNaN(Number(value))
     ? '—'
@@ -253,6 +255,7 @@ export default async function AnalyticsPage({ searchParams }: { searchParams?: P
     .sort((a, b) => b[1] - a[1])
     .slice(0, 8);
   const maxStatus = Math.max(1, ...statusMix.map(([, count]) => count));
+  const activeTotal = statusMix.reduce((sum, [, count]) => sum + count, 0);
 
   const meaningfulEvents = eventList
     .filter((event) => {
@@ -263,57 +266,77 @@ export default async function AnalyticsPage({ searchParams }: { searchParams?: P
 
   const filters: Array<[PeriodKey, string]> = [
     ['today', 'Today'],
-    ['week', 'This week'],
-    ['month', 'This month'],
+    ['week', 'Week'],
+    ['month', 'Month'],
   ];
 
   return (
-    <div className="atelierPage atelierAnalytics">
-      <header className="atelierHeading">
+    <div className="atelierPage atelierAnalytics" data-period={period}>
+      <header className="atelierHeading atelierAnalyticsHeading">
         <div>
-          <span className="eyebrow">THE PULSE</span>
-          <h1>How the day is running.</h1>
-          <p>Earnings, throughput, and what needs attention — calm and clear.</p>
+          <span className="eyebrow">ANALYTICS</span>
+          <h1>Business pulse</h1>
         </div>
+        <nav className="atelierAnalyticsSeg" aria-label="Date range">
+          {filters.map(([key, label]) => (
+            <Link
+              key={key}
+              href={periodHref(key)}
+              scroll={false}
+              prefetch={false}
+              aria-current={period === key ? 'page' : undefined}
+              className={period === key ? 'active' : undefined}
+            >
+              {label}
+            </Link>
+          ))}
+        </nav>
       </header>
 
-      <section className="atelierAnalyticsHero" aria-label="Business pulse">
-        <div className="atelierAnalyticsHeroTop">
-          <nav className="atelierPeriodFilters atelierAnalyticsPeriod" aria-label="Date range">
-            {filters.map(([key, label]) => (
-              <Link key={key} href={periodHref(key)} className={period === key ? 'active' : undefined}>
-                {label}
-              </Link>
-            ))}
-          </nav>
-          <span className="atelierAnalyticsHeroHint">{periodLabel}</span>
-        </div>
-
+      <section className="atelierAnalyticsHero" aria-label={`${periodLabel} pulse`}>
         <div className="atelierAnalyticsHeroMain">
           <div className="atelierAnalyticsHeroFigure">
-            <span className="eyebrow">YOUR EARNINGS</span>
+            <span className="eyebrow">EARNINGS · {periodLabel.toUpperCase()}</span>
             <strong className="atelierAnalyticsHeroNumber">{gbp(earnings)}</strong>
-            <p>Owner entitlement for {periodLabel.toLowerCase()}</p>
+            <p>Owner entitlement from settlements in range</p>
           </div>
-          <div className="atelierAnalyticsHeroStats" aria-label="Period snapshot">
+          <div className="atelierAnalyticsHeroStats" aria-label="Throughput">
             <div>
-              <span>Jobs done</span>
+              <span>Completed</span>
               <strong>{completedInPeriod.length}</strong>
             </div>
-            <div className={needsYouJobs.length ? 'needsAttention' : undefined}>
-              <span>Needs You</span>
-              <strong>{needsYouJobs.length}</strong>
+            <div>
+              <span>Created</span>
+              <strong>{createdInPeriod.length}</strong>
+            </div>
+            <div>
+              <span>Conversion</span>
+              <strong>{conversion === null ? '—' : `${conversion}%`}</strong>
             </div>
             <div>
               <span>Active now</span>
               <strong>{active.length}</strong>
             </div>
+            <div className={needsYouJobs.length ? 'needsAttention' : undefined}>
+              <span>Needs You</span>
+              <strong>{needsYouJobs.length}</strong>
+            </div>
+            {needsYouJobs.length > 0 ? (
+              <Link href="/jobs?view=needs-you" className="atelierAnalyticsHeroCta">
+                Open queue ↗
+              </Link>
+            ) : (
+              <div className="atelierAnalyticsHeroQuiet">
+                <span>Queue</span>
+                <strong>Clear</strong>
+              </div>
+            )}
           </div>
         </div>
 
         <div className="atelierAnalyticsSpark" aria-label="Last 14 days completions">
           <div className="atelierAnalyticsSparkHead">
-            <span className="eyebrow">LAST 14 DAYS</span>
+            <span className="eyebrow">14-DAY THROUGHPUT</span>
             <span>{sparkTotal ? `${sparkTotal} completed` : 'No completions yet'}</span>
           </div>
           <div className="atelierAnalyticsBars" role="img" aria-label="Completions over the last 14 days">
@@ -330,62 +353,36 @@ export default async function AnalyticsPage({ searchParams }: { searchParams?: P
         </div>
       </section>
 
+      <section className="atelierAnalyticsMoneyPulse" aria-label="Money pulse">
+        <div className="atelierAnalyticsMoneyPulseHead">
+          <div>
+            <span className="eyebrow">MONEY PULSE</span>
+            <h2>Cash in · owed · entitlement</h2>
+          </div>
+          <Link href={period === 'month' ? '/money' : `/money?period=${period}`} className="atelierAnalyticsLink">
+            Money ↗
+          </Link>
+        </div>
+        <div className="atelierAnalyticsMoneyGrid">
+          <div>
+            <span>Earnings</span>
+            <strong>{gbp(earnings)}</strong>
+          </div>
+          <div>
+            <span>Confirmed paid</span>
+            <strong>{gbp(confirmedPayments)}</strong>
+          </div>
+          <div>
+            <span>Still owed</span>
+            <strong>{gbp(stillOwed)}</strong>
+          </div>
+        </div>
+      </section>
+
       <div className="atelierAnalyticsGrid">
         <section className="atelierAnalyticsCard">
-          <span className="eyebrow">THROUGHPUT</span>
-          <h2>Jobs moving through.</h2>
-          <div className="atelierAnalyticsStatRow">
-            <div>
-              <span>Completed</span>
-              <strong>{completedInPeriod.length}</strong>
-            </div>
-            <div>
-              <span>Active</span>
-              <strong>{active.length}</strong>
-            </div>
-            <div className={needsYouJobs.length ? 'needsAttention' : undefined}>
-              <span>Needs You</span>
-              <strong>{needsYouJobs.length}</strong>
-            </div>
-          </div>
-          <p className="atelierAnalyticsNote">
-            {conversion === null
-              ? 'No jobs created in this period yet — conversion will appear when work starts arriving.'
-              : `${conversion}% of jobs created ${periodLabel.toLowerCase()} are already completed.`}
-          </p>
-          {needsYouJobs.length > 0 ? (
-            <Link href="/jobs?view=needs-you" className="atelierAnalyticsLink">
-              Open Needs You ↗
-            </Link>
-          ) : null}
-        </section>
-
-        <section className="atelierAnalyticsCard atelierAnalyticsMoneyCard">
-          <span className="eyebrow">MONEY PULSE</span>
-          <h2>Cash and entitlement.</h2>
-          <div className="atelierAnalyticsStatRow">
-            <div>
-              <span>Earnings</span>
-              <strong>{gbp(earnings)}</strong>
-            </div>
-            <div>
-              <span>Confirmed payments</span>
-              <strong>{gbp(confirmedPayments)}</strong>
-            </div>
-            <div>
-              <span>Still owed from fitters</span>
-              <strong>{gbp(stillOwed)}</strong>
-            </div>
-          </div>
-          <p className="atelierAnalyticsNote">Remittance detail lives on Money — this is the pulse only.</p>
-          <Link href={period === 'month' ? '/money' : `/money?period=${period}`} className="atelierAnalyticsLink">
-            Open Money ↗
-          </Link>
-        </section>
-
-        <section className="atelierAnalyticsCard">
-          <span className="eyebrow">WHERE WORK LANDS</span>
-          <h2>Top postcode areas.</h2>
+          <span className="eyebrow">POSTCODES</span>
+          <h2>Where work lands</h2>
           {topAreas.length ? (
             <div className="atelierAnalyticsHBars">
               {topAreas.map(([area, count]) => (
@@ -406,8 +403,13 @@ export default async function AnalyticsPage({ searchParams }: { searchParams?: P
         </section>
 
         <section className="atelierAnalyticsCard">
-          <span className="eyebrow">STATUS MIX</span>
-          <h2>What active jobs look like.</h2>
+          <div className="atelierAnalyticsCardHead">
+            <div>
+              <span className="eyebrow">STATUS MIX</span>
+              <h2>Active right now</h2>
+            </div>
+            <span className="atelierAnalyticsCardCount">{activeTotal}</span>
+          </div>
           {statusMix.length ? (
             <div className="atelierAnalyticsChips">
               {statusMix.map(([status, count]) => (
@@ -432,8 +434,8 @@ export default async function AnalyticsPage({ searchParams }: { searchParams?: P
         <section className="atelierAnalyticsTimelineCard">
           <div className="atelierSectionHeading">
             <div>
-              <span className="eyebrow">RECENT RHYTHM</span>
-              <h2>Latest meaningful beats.</h2>
+              <span className="eyebrow">TIMELINE</span>
+              <h2>Recent rhythm</h2>
             </div>
           </div>
           <ol className="atelierAnalyticsTimeline">

@@ -3,6 +3,13 @@ import { NextResponse, type NextRequest } from 'next/server';
 import { isAllowedUserId } from '@/lib/auth/allowed-users';
 
 export async function middleware(request: NextRequest) {
+  const path = request.nextUrl.pathname;
+
+  // Public static brand assets must never hit auth redirects (breaks Next/Image + login logo).
+  if (path.startsWith('/brand/')) {
+    return NextResponse.next();
+  }
+
   let response = NextResponse.next({ request });
 
   const supabase = createServerClient(
@@ -25,7 +32,6 @@ export async function middleware(request: NextRequest) {
   );
 
   const { data: { user } } = await supabase.auth.getUser();
-  const path = request.nextUrl.pathname;
   const isOgImage = path === '/opengraph-image' || path === '/twitter-image' || path.startsWith('/opengraph-image') || path.startsWith('/twitter-image');
   const publicPath = path === '/login' || path === '/unauthorised' || isOgImage;
 
@@ -66,5 +72,7 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/((?!_next/static|_next/image|favicon.ico).*)'],
+  matcher: [
+    '/((?!_next/static|_next/image|favicon.ico|brand/|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)',
+  ],
 };
