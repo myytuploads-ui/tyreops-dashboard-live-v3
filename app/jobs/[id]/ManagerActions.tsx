@@ -83,8 +83,9 @@ export default function ManagerActions({ job, offers, fitters, depositRules, fir
 
   const isPricing = job.status === 'awaiting_owner_price';
   const isFirstRefusal = job.status === 'awaiting_owner_first_refusal';
-  const isAssignment = job.status === 'awaiting_owner_assignment';
-  const manualAssignmentEligible = ['deposit_paid', 'awaiting_group_dispatch', 'dispatching_preferred', 'dispatching_general', 'awaiting_owner_assignment', 'manual_review', 'awaiting_owner_first_refusal'].includes(job.status);
+  const isAssignment = ['awaiting_owner_assignment', 'offers_received'].includes(job.status);
+  const isGroupDispatch = job.status === 'awaiting_group_dispatch';
+  const manualAssignmentEligible = ['deposit_paid', 'awaiting_group_dispatch', 'dispatching_preferred', 'dispatching_general', 'awaiting_owner_assignment', 'offers_received', 'manual_review', 'awaiting_owner_first_refusal'].includes(job.status);
   const needsFitterSourcing = manualAssignmentEligible;
   if (!isPricing && !isFirstRefusal && !isAssignment && !needsFitterSourcing) return null;
   const activeFitters = fitters.filter((fitter) => fitter.active !== false);
@@ -96,7 +97,7 @@ export default function ManagerActions({ job, offers, fitters, depositRules, fir
   const matchingDeposit = depositRules.find((rule) => Number(rule.min_job_value_gbp) === enteredCustomerPrice && Number(rule.max_job_value_gbp) === enteredCustomerPrice);
 
   return <section className="panel ownerActionPanel" id={isPricing ? "set-price" : "owner-action"}>
-    <div className="panelHead"><div><span className="eyebrow">DO THIS NOW</span><h2>{isPricing ? 'Set price' : isFirstRefusal ? 'Your decision' : 'Assign fitter'}</h2><p>{isPricing ? 'One confirmed price sends the payment link. Catalogue suggestions stay on this screen until you confirm.' : isFirstRefusal ? 'Take it, send it on, or snooze — nothing else matters until you decide.' : 'Pick the fitter. Customer and fitter get notified after it lands.'}</p></div></div>
+    <div className="panelHead"><div><span className="eyebrow">DO THIS NOW</span><h2>{isPricing ? 'Set price' : isFirstRefusal ? 'Your decision' : isGroupDispatch ? 'Assign or find a fitter' : 'Assign fitter'}</h2><p>{isPricing ? 'One confirmed price sends the payment link. Catalogue suggestions stay on this screen until you confirm.' : isFirstRefusal ? 'Take it, send it on, or snooze — nothing else matters until you decide.' : isGroupDispatch ? 'Group Dispatch owns the copy + live offers. Assign a guest or registered fitter here if you found one yourself.' : 'Pick the fitter. Customer and fitter get notified after it lands.'}</p></div></div>
     <div className="panelBody">
       {error ? <div className="error">{error}</div> : null}
       {notice ? <div className="success">{notice}</div> : null}
@@ -127,7 +128,7 @@ export default function ManagerActions({ job, offers, fitters, depositRules, fir
         return <article className="assignmentOffer" key={offer.id}><div><strong>{fitter?.full_name || offer.fitter_name || 'Fitter'}</strong><span>{fitter?.priority_level ? `Priority ${fitter.priority_level}` : 'General'} · reliability {fitter?.reliability_score ?? '—'} · completed {fitter?.completed_jobs ?? '—'}</span></div><div><b>{offer.quoted_cost != null ? `£${Number(offer.quoted_cost).toFixed(0)}` : '—'}</b><span>{offer.eta_minutes != null ? `${offer.eta_minutes} min ETA` : 'ETA —'}</span></div><button type="button" className={offerIndex === 0 ? 'btn primary' : 'btn'} disabled={Boolean(busy)} onClick={() => window.confirm(`Assign ${fitter?.full_name || 'this fitter'}?`) && void post('/api/fitter-assignment', { job_id: job.id, offer_id: offer.id }, 'Fitter assigned. Refreshing...')}>Assign fitter</button></article>;
       }) : <div className="empty">No pending fitter offers are visible for this job.</div>}</div> : null}
       {needsFitterSourcing ? <div className="manualFitterPanel">
-        <div className="manualFitterBlock"><h3>Group Message</h3><p>Copy this into your fitter group. It uses job details only and does not include customer contact details, budgets, margin or internal notes.</p><textarea readOnly rows={4} value={groupMessage(job)} /><button type="button" className="btn" onClick={async () => { await navigator.clipboard.writeText(groupMessage(job)); setNotice('Group message copied.'); }}>Copy Message</button></div>
+        {!isGroupDispatch ? <div className="manualFitterBlock"><h3>Group Message</h3><p>Copy this into your fitter group. It uses job details only and does not include customer contact details, budgets, margin or internal notes.</p><textarea readOnly rows={4} value={groupMessage(job)} /><button type="button" className="btn" onClick={async () => { await navigator.clipboard.writeText(groupMessage(job)); setNotice('Group message copied.'); }}>Copy Message</button></div> : <div className="manualFitterBlock groupDispatchOwnsCopy"><h3>Group copy lives above</h3><p>Use Group Dispatch to copy the prepared message and assign live offers. Manual assign below is for a fitter you found yourself.</p></div>}
         <div className="manualFitterBlock foundFitterFlow"><h3>I Found a Fitter</h3>
           {manualAssignmentEligible ? <>
             <div className="choiceTabs"><button type="button" className={manualMode === 'existing' ? 'active' : ''} onClick={() => setManualMode('existing')}>Existing fitter</button><button type="button" className={manualMode === 'guest' ? 'active' : ''} onClick={() => setManualMode('guest')}>New / guest fitter</button></div>

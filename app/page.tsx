@@ -21,10 +21,12 @@ const age = (value: unknown) => {
 function actionCopy(job: Row) {
   const status = String(job.status || '').toLowerCase();
   if (status === 'awaiting_owner_price') return ['Price needed', 'Set price'];
-  if (status === 'awaiting_owner_first_refusal') return ['Your decision', 'Accept or release'];
-  if (['offers_received', 'awaiting_owner_assignment'].includes(status)) return ['Fitter decision', 'Review offers'];
+  if (status === 'awaiting_owner_first_refusal') return ['Your decision', 'Decide now'];
+  if (status === 'awaiting_group_dispatch') return ['Group dispatch', 'Copy & assign'];
+  if (['offers_received', 'awaiting_owner_assignment'].includes(status)) return ['Fitter decision', 'Assign fitter'];
   if (status === 'deposit_paid') return ['Ready to assign', 'Choose a fitter'];
-  if (status === 'payment_link_expired') return ['Payment expired', 'Review payment'];
+  if (status === 'awaiting_payment') return ['Waiting on payment', 'Chase payment'];
+  if (status === 'payment_link_expired') return ['Payment expired', 'Chase payment'];
   if (status === 'manual_review') return ['Manual review', 'Open job'];
   return ['Needs attention', 'Open job'];
 }

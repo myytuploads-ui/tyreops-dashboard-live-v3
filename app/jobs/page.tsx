@@ -35,15 +35,17 @@ const STATUSES = Object.keys(STATUS_LABELS);
 function jobCta(status: string) {
   const s = String(status || '').toLowerCase();
   if (s === 'awaiting_owner_price') return 'Set price';
-  if (s === 'awaiting_payment' || s === 'payment_link_expired') return 'View payment';
-  if (s === 'awaiting_owner_first_refusal') return 'Accept or release';
-  if (['deposit_paid', 'offers_received', 'awaiting_owner_assignment', 'awaiting_group_dispatch'].includes(s)) return 'Assign fitter';
+  if (s === 'awaiting_payment' || s === 'payment_link_expired') return 'Chase payment';
+  if (s === 'awaiting_owner_first_refusal') return 'Decide now';
+  if (s === 'awaiting_group_dispatch') return 'Group dispatch';
+  if (['deposit_paid', 'offers_received', 'awaiting_owner_assignment'].includes(s)) return 'Assign fitter';
   if (s === 'manual_review') return 'Open job';
+  if (s === 'completed') return 'Settlement';
   return 'View job';
 }
 
 function isActionableStatus(status: string) {
-  return ['awaiting_owner_price','deposit_paid','offers_received','awaiting_owner_assignment','awaiting_owner_first_refusal','awaiting_group_dispatch','payment_link_expired','manual_review'].includes(String(status||'').toLowerCase());
+  return ['awaiting_owner_price','deposit_paid','offers_received','awaiting_owner_assignment','awaiting_owner_first_refusal','awaiting_group_dispatch','awaiting_payment','payment_link_expired','manual_review'].includes(String(status||'').toLowerCase());
 }
 
 export default function JobsPage() {

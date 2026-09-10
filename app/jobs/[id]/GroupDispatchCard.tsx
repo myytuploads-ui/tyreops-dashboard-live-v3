@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 
@@ -93,7 +94,7 @@ export default function GroupDispatchCard({ jobId, tyreSize, quantity, area }: {
     <div className="panelBody">
       <dl className="groupDispatchFacts"><div><dt>Tyres</dt><dd>{tyreSize || '—'} × {String(quantity ?? '—')}</dd></div><div><dt>Area</dt><dd>{area || '—'}</dd></div><div><dt>Waiting</dt><dd>{ago(status?.waitingSince || '')}</dd></div><div><dt>Pending offers</dt><dd>{status?.offers.length ?? '—'}</dd></div></dl>
       {loading ? <div className="groupDispatchLoading">Loading authoritative group status…</div> : null}
-      {error ? <div className="error groupDispatchFeedback">{error}</div> : null}
+      {error ? <div className="error groupDispatchFeedback">{error}<div className="backendContractFallbacks"><Link className="atelierButton" href={`/conversations?job=${jobId}`}>Open inbox</Link><button type="button" className="atelierButton" onClick={() => void refresh()} disabled={Boolean(action) || loading}>Retry status</button></div></div> : null}
       {notice ? <div className="success groupDispatchFeedback">{notice}</div> : null}
       {status && (status.message || status.intakeUrl) ? <div className="groupMessage"><pre>{status.message || `Got a job in ${area || 'the area'} — ${tyreSize || 'tyres'} x${String(quantity ?? '—')}. Customer's ready. Need price + ETA.\n\n${status.intakeUrl}`}</pre><button type="button" className="btn primary copyGroupMessage" onClick={copyMessage} disabled={Boolean(action)}>Copy Group Message</button></div> : !loading && !error ? <div className="empty">The prepared group message is not available yet.</div> : null}
       <div className="groupOfferHeader"><div><h3>Fitter offers</h3><p>Automatically refreshed every 7 seconds.</p></div><strong>{status?.offers.length || 0}</strong></div>

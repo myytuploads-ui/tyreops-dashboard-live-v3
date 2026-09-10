@@ -37,7 +37,7 @@ export default function LoginPage() {
       }
 
       setMessageTone('quiet');
-      setMessage('Signed in. Opening your dayâ€¦');
+      setMessage('Signed in. Opening your day…');
       window.location.assign('/');
     } catch (error) {
       setMessage(`Unable to contact authentication: ${error instanceof Error ? error.message : 'Unknown error.'}`);
@@ -88,9 +88,9 @@ export default function LoginPage() {
             <span className="loginLabel">Password</span>
             <input className="input" autoComplete="current-password" type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="" required />
           </label>
-          <button className="btn primary loginSubmit" type="submit" disabled={loading}>{loading ? 'Signing inâ€¦' : 'Sign in'}</button>
+          <button className="btn primary loginSubmit" type="submit" disabled={loading}>{loading ? 'Signing in…' : 'Sign in'}</button>
           <button className="loginForgot" type="button" onClick={() => void forgotPassword()} disabled={resetting || loading}>
-            {resetting ? 'Sending resetâ€¦' : 'Forgot password?'}
+            {resetting ? 'Sending reset…' : 'Forgot password?'}
           </button>
           {message ? <div className={messageTone === 'warn' ? 'error' : 'loginQuietMsg'} role="status">{message}</div> : null}
         </form>

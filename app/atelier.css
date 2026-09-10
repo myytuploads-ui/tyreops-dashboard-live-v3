@@ -809,3 +809,11 @@
   .atelierRemitRowRight{text-align:left}
   .fitterSentCurrent{font-size:28px}
 }
+
+/* Command centre — group dispatch owns copy; manual assign stays secondary */
+.groupDispatchOwnsCopy{opacity:.92}
+.groupDispatchOwnsCopy h3{margin:0 0 6px;font-size:14px}
+.groupDispatchOwnsCopy p{margin:0;color:#9aa1ab;font-size:13px;line-height:1.5}
+.groupDispatchFeedback .backendContractFallbacks{margin-top:10px}
+.atelierEarningsStrip{opacity:.88}
+.atelierPriority.hasAttention{box-shadow:0 18px 40px rgba(0,0,0,.28)}

@@ -91,15 +91,15 @@ function nextStepCopy(status: unknown, ownerNeeded: boolean, opts: { hasSuggeste
   };
   if (s === 'awaiting_payment' && opts.paymentExpired) return {
     title: 'Payment expired', body: 'Chase the customer on WhatsApp or Inbox — do not wait on a webhook.',
-    cta: opts.hasPhone ? 'Chase on WhatsApp' : 'Message customer', href: opts.hasPhone ? 'WHATSAPP' : 'INBOX', panel: false as const, assist: null, blocked: false,
+    cta: 'Chase payment', href: '#payment-resend', panel: true as const, assist: null, blocked: false,
   };
   if (s === 'awaiting_payment') return {
-    title: 'Waiting on payment', body: 'Customer has the link. Chase if they stall.',
-    cta: opts.hasPhone ? 'Chase on WhatsApp' : 'Open inbox', href: opts.hasPhone ? 'WHATSAPP' : 'INBOX', panel: false as const, assist: null, blocked: false,
+    title: 'Waiting on payment', body: 'Customer has the link. Chase if they stall — WhatsApp first.',
+    cta: 'Chase payment', href: '#payment-resend', panel: true as const, assist: null, blocked: false,
   };
   if (s === 'payment_link_expired') return {
     title: 'Payment expired', body: 'Chase the customer on WhatsApp or Inbox — do not wait on a webhook.',
-    cta: opts.hasPhone ? 'Chase on WhatsApp' : 'Message customer', href: opts.hasPhone ? 'WHATSAPP' : 'INBOX', panel: false as const, assist: null, blocked: false,
+    cta: 'Chase payment', href: '#payment-resend', panel: true as const, assist: null, blocked: false,
   };
   if (s === 'manual_review') return {
     title: 'Needs a human look', body: 'Open the conversation or assign a fitter if that unblocks it.',
@@ -267,7 +267,7 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
       <div className="atelierProgress atelierProgressSlim" aria-hidden="true">{['Enquiry','Quote','Deposit','Fitter','On route','Fitting','Done'].map((label,i)=><div className={i<=stage?'reached':''} key={label}><i>{i<stage?'✓':i+1}</i><span>{label}</span></div>)}</div>
     </header>
 
-    {paymentExpired ? <PaymentResendActions jobId={job.id} mode={paymentResendMode} amountLabel={paymentAmountLabel} customerPhone={job.customer_phone ? String(job.customer_phone) : undefined} publicJobId={job.public_job_id ? String(job.public_job_id) : undefined} webhookResendAvailable={paymentResendConfigured} /> : null}
+    {(paymentExpired || jobStatus === 'awaiting_payment') ? <PaymentResendActions jobId={job.id} mode={paymentResendMode} amountLabel={paymentAmountLabel} customerPhone={job.customer_phone ? String(job.customer_phone) : undefined} publicJobId={job.public_job_id ? String(job.public_job_id) : undefined} webhookResendAvailable={paymentResendConfigured} /> : null}
     <ManagerActions job={job as any} offers={offers} fitters={fitters} depositRules={depositRules} firstRefusalReady={firstRefusalReady} assignmentReady={assignmentReady} suggestedQuote={suggestedQuote as any} />
     {job.status === 'awaiting_group_dispatch' ? <GroupDispatchCard jobId={job.id} tyreSize={job.tyre_size || ''} quantity={job.tyre_quantity} area={job.postcode || job.postcode_area || ''} /> : null}
 
