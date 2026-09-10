@@ -268,8 +268,8 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
     </header>
 
     {(paymentExpired || jobStatus === 'awaiting_payment') ? <PaymentResendActions jobId={job.id} mode={paymentResendMode} amountLabel={paymentAmountLabel} customerPhone={job.customer_phone ? String(job.customer_phone) : undefined} publicJobId={job.public_job_id ? String(job.public_job_id) : undefined} webhookResendAvailable={paymentResendConfigured} /> : null}
-    <ManagerActions job={job as any} offers={offers} fitters={fitters} depositRules={depositRules} firstRefusalReady={firstRefusalReady} assignmentReady={assignmentReady} suggestedQuote={suggestedQuote as any} />
     {job.status === 'awaiting_group_dispatch' ? <GroupDispatchCard jobId={job.id} tyreSize={job.tyre_size || ''} quantity={job.tyre_quantity} area={job.postcode || job.postcode_area || ''} /> : null}
+    <ManagerActions job={job as any} offers={offers} fitters={fitters} depositRules={depositRules} firstRefusalReady={firstRefusalReady} assignmentReady={assignmentReady} suggestedQuote={suggestedQuote as any} />
 
     {String(job.status || '').toLowerCase() === 'completed' ? (() => {
       const owed = owedNowAmount(settlement, job);

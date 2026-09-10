@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
+import { copyTextToClipboard } from '@/lib/dashboard/clipboard';
 
 type Row = Record<string, any>;
 type Job = {
@@ -95,6 +96,9 @@ export default function ManagerActions({ job, offers, fitters, depositRules, fir
   const manualMargin = Number.isFinite(customer) && Number.isFinite(manual) ? customer - manual : null;
   const enteredCustomerPrice = Number(customerPrice);
   const matchingDeposit = depositRules.find((rule) => Number(rule.min_job_value_gbp) === enteredCustomerPrice && Number(rule.max_job_value_gbp) === enteredCustomerPrice);
+  const canManualAssign = manualMode === 'existing'
+    ? Boolean(manualFitterId) && Number.isFinite(manual) && manual > 0 && Boolean(String(manualEta).trim())
+    : Boolean(guestName.trim()) && Boolean(guestPhone.trim()) && Number.isFinite(manual) && manual > 0 && Boolean(String(manualEta).trim());
 
   return <section className="panel ownerActionPanel" id={isPricing ? "set-price" : "owner-action"}>
     <div className="panelHead"><div><span className="eyebrow">DO THIS NOW</span><h2>{isPricing ? 'Set price' : isFirstRefusal ? 'Your decision' : isGroupDispatch ? 'Assign or find a fitter' : 'Assign fitter'}</h2><p>{isPricing ? 'One confirmed price sends the payment link. Catalogue suggestions stay on this screen until you confirm.' : isFirstRefusal ? 'Take it, send it on, or snooze — nothing else matters until you decide.' : isGroupDispatch ? 'Group Dispatch owns the copy + live offers. Assign a guest or registered fitter here if you found one yourself.' : 'Pick the fitter. Customer and fitter get notified after it lands.'}</p></div></div>
@@ -128,7 +132,7 @@ export default function ManagerActions({ job, offers, fitters, depositRules, fir
         return <article className="assignmentOffer" key={offer.id}><div><strong>{fitter?.full_name || offer.fitter_name || 'Fitter'}</strong><span>{fitter?.priority_level ? `Priority ${fitter.priority_level}` : 'General'} · reliability {fitter?.reliability_score ?? '—'} · completed {fitter?.completed_jobs ?? '—'}</span></div><div><b>{offer.quoted_cost != null ? `£${Number(offer.quoted_cost).toFixed(0)}` : '—'}</b><span>{offer.eta_minutes != null ? `${offer.eta_minutes} min ETA` : 'ETA —'}</span></div><button type="button" className={offerIndex === 0 ? 'btn primary' : 'btn'} disabled={Boolean(busy)} onClick={() => window.confirm(`Assign ${fitter?.full_name || 'this fitter'}?`) && void post('/api/fitter-assignment', { job_id: job.id, offer_id: offer.id }, 'Fitter assigned. Refreshing...')}>Assign fitter</button></article>;
       }) : <div className="empty">No pending fitter offers are visible for this job.</div>}</div> : null}
       {needsFitterSourcing ? <div className="manualFitterPanel">
-        {!isGroupDispatch ? <div className="manualFitterBlock"><h3>Group Message</h3><p>Copy this into your fitter group. It uses job details only and does not include customer contact details, budgets, margin or internal notes.</p><textarea readOnly rows={4} value={groupMessage(job)} /><button type="button" className="btn" onClick={async () => { await navigator.clipboard.writeText(groupMessage(job)); setNotice('Group message copied.'); }}>Copy Message</button></div> : <div className="manualFitterBlock groupDispatchOwnsCopy"><h3>Group copy lives above</h3><p>Use Group Dispatch to copy the prepared message and assign live offers. Manual assign below is for a fitter you found yourself.</p></div>}
+        {!isGroupDispatch ? <div className="manualFitterBlock"><h3>Group Message</h3><p>Copy this into your fitter group. It uses job details only and does not include customer contact details, budgets, margin or internal notes.</p><textarea readOnly rows={4} value={groupMessage(job)} id={`group-message-${job.id}`} /><button type="button" className="btn" disabled={Boolean(busy)} onClick={async () => { setError(''); setNotice(''); const result = await copyTextToClipboard(groupMessage(job)); if (result.ok) setNotice('Group message copied.'); else setError(result.error); }}>Copy Message</button></div> : <div className="manualFitterBlock groupDispatchOwnsCopy"><h3>Group copy lives above</h3><p>Use Group Dispatch to copy the prepared message and assign live offers. Manual assign below is for a fitter you found yourself.</p></div>}
         <div className="manualFitterBlock foundFitterFlow"><h3>I Found a Fitter</h3>
           {manualAssignmentEligible ? <>
             <div className="choiceTabs"><button type="button" className={manualMode === 'existing' ? 'active' : ''} onClick={() => setManualMode('existing')}>Existing fitter</button><button type="button" className={manualMode === 'guest' ? 'active' : ''} onClick={() => setManualMode('guest')}>New / guest fitter</button></div>
@@ -143,13 +147,13 @@ export default function ManagerActions({ job, offers, fitters, depositRules, fir
               <label className="wide"><span>Notes</span><textarea rows={2} value={manualNotes} onChange={(event) => setManualNotes(event.target.value)} placeholder="Optional" /></label>
             </div>
             <dl className="assignmentPreview"><div><dt>Job</dt><dd>{text((job as Row).public_job_id || job.id)}</dd></div><div><dt>Tyres</dt><dd>{text(job.tyre_size)} x {text(job.tyre_quantity)}</dd></div><div><dt>Location</dt><dd>{text(job.postcode || job.postcode_area)}</dd></div><div><dt>Fitter</dt><dd>{manualMode === 'existing' ? text(selectedFitter?.full_name, 'Choose fitter') : text(guestName, 'Enter guest')}</dd></div><div><dt>Customer price</dt><dd>{Number.isFinite(customer) ? `£${customer.toFixed(0)}` : 'Not priced'}</dd></div><div><dt>Fitter cost</dt><dd>{Number.isFinite(manual) ? `£${manual.toFixed(0)}` : 'Enter cost'}</dd></div><div><dt>Gross margin</dt><dd>{manualMargin === null ? '—' : `£${manualMargin.toFixed(0)}`}</dd></div><div><dt>ETA</dt><dd>{manualEta ? `${manualEta} min` : 'Enter ETA'}</dd></div></dl>
-            <button type="button" className={isAssignment && assignmentReady && offers.length > 0 ? 'btn' : 'btn primary'} disabled={Boolean(busy)} onClick={() => {              const who = manualMode === 'existing' ? selectedFitter?.full_name || 'this fitter' : guestName || 'this guest fitter';
+            <button type="button" className={isAssignment && assignmentReady && offers.length > 0 ? 'btn' : 'btn primary'} disabled={Boolean(busy) || !canManualAssign} onClick={() => {              const who = manualMode === 'existing' ? selectedFitter?.full_name || 'this fitter' : guestName || 'this guest fitter';
               if (!window.confirm(`Assign ${who} to ${text((job as Row).public_job_id || job.id)}? TyreOps will notify the customer and fitter after the workflow accepts it.`)) return;
               const payload: Row = { job_id: job.id, fitter_cost: manualCost, eta_minutes: manualEta, source: manualSource, notes: manualNotes };
               if (manualMode === 'existing') payload.fitter_id = manualFitterId;
               else payload.guest_fitter = { name: guestName, phone: guestPhone };
               void post('/api/manual-fitter-assignment', payload, 'Manual fitter assigned. Refreshing the authoritative job state...');
-            }}>{busy ? 'Assigning...' : 'Assign Fitter'}</button>
+            }}>{busy ? 'Assigning...' : canManualAssign ? 'Assign Fitter' : 'Enter fitter, cost and ETA'}</button>
           </> : <p>This job is not in a state where manual fitter assignment is safe. Use the timeline and conversation to decide the next step.</p>}
         </div>
       </div> : null}

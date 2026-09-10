@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { copyTextToClipboard } from '@/lib/dashboard/clipboard';
 
 type BackendRecord = Record<string, unknown>;
 type Offer = { id: string; name: string; cost: number | null; eta: number | null; phone: string; submittedAt: string };
@@ -84,9 +85,15 @@ export default function GroupDispatchCard({ jobId, tyreSize, quantity, area }: {
 
   async function copyMessage() {
     const copy = status?.message || (status?.intakeUrl ? `Got a job in ${area || 'the area'} — ${tyreSize || 'tyres'} x${String(quantity ?? '—')}. Customer's ready. Need price + ETA.\n\n${status.intakeUrl}` : '');
-    if (!copy) return;
-    try { await navigator.clipboard.writeText(copy); setNotice('Copied'); window.setTimeout(() => setNotice(''), 2200); }
-    catch { setError('Copy failed. Select and copy the message manually.'); }
+    if (!copy) { setError('Nothing to copy yet.'); return; }
+    setError(''); setNotice('');
+    const result = await copyTextToClipboard(copy);
+    if (result.ok) {
+      setNotice('Group message copied.');
+      window.setTimeout(() => setNotice(''), 2200);
+    } else {
+      setError(result.error);
+    }
   }
 
   return <section className="panel groupDispatchCard">
