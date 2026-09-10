@@ -16,22 +16,26 @@ export type FitterView = {
   completedJobs: number | null;
 };
 
-type FormState = { fullName: string; whatsappPhone: string; active: boolean; preferred: boolean; coverage: string; coversEverywhere: boolean; priority: string };
-const emptyForm: FormState = { fullName: '', whatsappPhone: '', active: true, preferred: false, coverage: '', coversEverywhere: false, priority: '100' };
+type FormState = { fullName: string; whatsappPhone: string; active: boolean; preferred: boolean; coverageTokens: string[]; coversEverywhere: boolean; priority: string; coverageDraft: string };
+const emptyForm: FormState = { fullName: '', whatsappPhone: '', active: true, preferred: false, coverageTokens: [], coversEverywhere: false, priority: '100', coverageDraft: '' };
 
 function formFor(fitter: FitterView): FormState {
   const coversEverywhere = fitter.coverageAreas.includes('ALL');
-  return { fullName: fitter.fullName, whatsappPhone: fitter.whatsappPhone, active: fitter.active, preferred: fitter.preferred, coverage: coversEverywhere ? '' : fitter.coverageAreas.join(', '), coversEverywhere, priority: String(fitter.priority) };
+  return { fullName: fitter.fullName, whatsappPhone: fitter.whatsappPhone, active: fitter.active, preferred: fitter.preferred, coverageTokens: coversEverywhere ? [] : [...fitter.coverageAreas], coversEverywhere, priority: String(fitter.priority), coverageDraft: '' };
+}
+
+function pushCoverageToken(form: FormState, raw: string): FormState {
+  const token = raw.trim().replace(/\s+/g, ' ');
+  if (!token) return { ...form, coverageDraft: '' };
+  const key = token.toLowerCase();
+  if (form.coverageTokens.some((t) => t.toLowerCase() === key)) return { ...form, coverageDraft: '' };
+  return { ...form, coverageTokens: [...form.coverageTokens, token], coverageDraft: '' };
 }
 
 function initials(name: string) {
   return name.split(/\s+/).filter(Boolean).map((part) => part[0]).slice(0, 2).join('').toUpperCase() || 'FT';
 }
 
-function coverageLabel(areas: string[]) {
-  if (areas.includes('ALL')) return 'All service areas';
-  return areas.length ? areas.join(', ') : 'No coverage recorded';
-}
 
 export default function FittersControlCentre({ fitters, loadError }: { fitters: FitterView[]; loadError: string | null }) {
   const router = useRouter();
@@ -57,7 +61,7 @@ export default function FittersControlCentre({ fitters, loadError }: { fitters: 
   async function saveEditor() {
     const key = editing?.id || 'new';
     setBusyId(key); setFeedback(null);
-    const coverageAreas = form.coversEverywhere ? ['ALL'] : form.coverage.split(',').map((value) => value.trim()).filter(Boolean);
+    const coverageAreas = form.coversEverywhere ? ['ALL'] : form.coverageTokens;
     const body = { full_name: form.fullName, whatsapp_phone: form.whatsappPhone, active: form.active, preferred: form.preferred, coverage_areas: coverageAreas, priority_level: Number(form.priority) };
     try {
       await request(editing ? `/api/fitters/${editing.id}` : '/api/fitters', editing ? 'PATCH' : 'POST', body);
@@ -95,7 +99,7 @@ export default function FittersControlCentre({ fitters, loadError }: { fitters: 
       {fitters.map((fitter) => <article className={`fitterControlCard ${fitter.active ? 'active' : 'inactive'}`} key={fitter.id}>
         <div className="fitterControlTop"><div className="fitterIdentity"><div className="fitterAvatar">{initials(fitter.fullName)}</div><div><strong>{fitter.fullName}</strong><span>{fitter.whatsappPhone || 'No WhatsApp number'}</span></div></div><div className="fitterBadges"><span className={`fitterState ${fitter.active ? 'active' : 'inactive'}`}>{fitter.active ? 'Active' : 'Inactive'}</span><span className={`fitterTier ${fitter.preferred ? 'preferred' : ''}`}>{fitter.preferred ? 'Preferred' : 'General'}</span></div></div>
         <div className="atelierContactActions">{fitter.whatsappPhone && <><a className="atelierButton" href={`tel:${fitter.whatsappPhone.replace(/[^+0-9]/g,'')}`}>Call</a><a className="atelierButton" href={`https://wa.me/${fitter.whatsappPhone.replace(/\D/g,'')}`} target="_blank" rel="noreferrer">WhatsApp ↗</a></>}</div>
-        <div className="fitterCoverage"><span>Coverage</span><strong>{coverageLabel(fitter.coverageAreas)}</strong></div>
+        <div className="fitterCoverage"><span>Coverage</span>{fitter.coverageAreas.includes('ALL') ? <strong>All service areas</strong> : fitter.coverageAreas.length ? <div className="coverageChips">{fitter.coverageAreas.map((area) => <span className="coverageChip" key={area}>{area}</span>)}</div> : <strong>No coverage recorded</strong>}</div>
         <div className="fitterActions"><button type="button" onClick={() => openEdit(fitter)} disabled={busyId !== null}>Edit details</button><button type="button" onClick={() => void quickUpdate(fitter, { preferred: !fitter.preferred })} disabled={busyId !== null}>{fitter.preferred ? 'Make general' : 'Make preferred'}</button><button className={fitter.active ? 'danger' : 'activate'} type="button" onClick={() => void quickUpdate(fitter, { active: !fitter.active })} disabled={busyId !== null}>{busyId === fitter.id ? 'Checking…' : fitter.active ? 'Deactivate' : 'Activate'}</button></div>
       </article>)}
     </div>}
@@ -108,10 +112,10 @@ export default function FittersControlCentre({ fitters, loadError }: { fitters: 
         <label><span>Priority</span><input type="number" min="1" max="999" value={form.priority} onChange={(event) => setForm({ ...form, priority: event.target.value })} /><small>Lower numbers are contacted first.</small></label>
         <div className="fitterChoiceGroup"><span>Availability</span><button className={form.active ? 'selected' : ''} type="button" onClick={() => setForm({ ...form, active: true })}>Active</button><button className={!form.active ? 'selected' : ''} type="button" onClick={() => setForm({ ...form, active: false })}>Inactive</button></div>
         <div className="fitterChoiceGroup"><span>Fitter type</span><button className={form.preferred ? 'selected' : ''} type="button" onClick={() => setForm({ ...form, preferred: true })}>Preferred</button><button className={!form.preferred ? 'selected' : ''} type="button" onClick={() => setForm({ ...form, preferred: false })}>General</button></div>
-        <div className="fitterCoverageEditor"><label className="coversEverywhere"><input type="checkbox" checked={form.coversEverywhere} onChange={(event) => setForm({ ...form, coversEverywhere: event.target.checked })} /><span>Covers every service area</span></label>{!form.coversEverywhere ? <label><span>Coverage postcode prefixes</span><input value={form.coverage} placeholder="M, SK, WA, OL" onChange={(event) => setForm({ ...form, coverage: event.target.value })} /><small>Comma-separated prefixes; duplicates are rejected.</small></label> : null}</div>
+        <div className="fitterCoverageEditor"><label className="coversEverywhere"><input type="checkbox" checked={form.coversEverywhere} onChange={(event) => setForm({ ...form, coversEverywhere: event.target.checked, coverageTokens: event.target.checked ? [] : form.coverageTokens })} /><span>Covers every service area</span></label>{!form.coversEverywhere ? <div className="coverageChipEditor"><span>Coverage areas</span><div className="coverageChips">{form.coverageTokens.map((token) => <span className="coverageChip" key={token}>{token}<button type="button" aria-label={`Remove ${token}`} onClick={() => setForm({ ...form, coverageTokens: form.coverageTokens.filter((t) => t !== token) })}>x</button></span>)}</div><div className="coverageChipInputRow"><input value={form.coverageDraft} placeholder="UB5, Birmingham, M..." onChange={(event) => setForm({ ...form, coverageDraft: event.target.value })} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ',') { event.preventDefault(); setForm((prev) => pushCoverageToken(prev, prev.coverageDraft.replace(/,/g, ''))); } }} /><button type="button" className="btn" onClick={() => setForm((prev) => pushCoverageToken(prev, prev.coverageDraft))}>Add</button></div><small>Postcode prefixes or city names. Tap x to remove.</small></div> : null}</div>
       </div>
       {feedback?.type === 'error' ? <div className="error">{feedback.text}</div> : null}
-      <div className="fitterEditorActions"><button className="btn" type="button" onClick={closeEditor} disabled={busyId !== null}>Cancel</button><button className="btn primary" type="button" onClick={() => void saveEditor()} disabled={busyId !== null}>{busyId ? 'Saving…' : editing ? 'Save changes' : 'Add fitter'}</button></div>
+      <div className="fitterEditorActions"><button className="btn" type="button" onClick={closeEditor} disabled={busyId !== null}>Cancel</button><button className="btn primary" type="button" onClick={() => void saveEditor()} disabled={busyId !== null}>{busyId ? 'Saving...' : editing ? 'Save changes' : 'Add fitter'}</button></div>
     </section></div> : null}
   </>;
 }
