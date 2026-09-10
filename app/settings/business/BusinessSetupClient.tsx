@@ -53,7 +53,10 @@ export default function BusinessSetupClient() {
   const [saveState, setSaveState] = useState<Record<string, string>>({});
   const [meetingMode, setMeetingMode] = useState(false);
   const [meetingIndex, setMeetingIndex] = useState(0);
+  const [meetingAnswer, setMeetingAnswer] = useState('');
   const [meetingNotes, setMeetingNotes] = useState('');
+  const [meetingError, setMeetingError] = useState('');
+  const [meetingMoreOpen, setMeetingMoreOpen] = useState(false);
   const applyData = useCallback((result: Row) => { setProfile(result.profile); setOnboarding(result.onboarding || []); setRules(result.rules || []); }, []);
   const load = useCallback(async () => {
     try {
@@ -67,7 +70,7 @@ export default function BusinessSetupClient() {
   useEffect(() => { void load(); }, [load]);
   useEffect(() => {
     const saved = Number(window.localStorage.getItem('tyreops_meeting_index') || '0');
-    if (Number.isFinite(saved) && saved >= 0) setMeetingIndex(saved);
+    if (Number.isFinite(saved) && saved >= 0) setMeetingIndex(Math.floor(saved));
   }, []);
   useEffect(() => {
     window.localStorage.setItem('tyreops_meeting_index', String(meetingIndex));
@@ -95,26 +98,67 @@ export default function BusinessSetupClient() {
   const readinessBlocked = readinessMissing.some((key) => itemMap.get(key)?.status === 'blocked');
   const realJobComplete = itemMap.get('controlled_real_job_completed')?.status === 'confirmed';
   const pilotState = readinessMissing.length === 0 && realJobComplete ? 'Live' : readinessMissing.length === 0 ? 'Ready for controlled pilot' : readinessBlocked ? 'Ready with blockers' : 'Onboarding';
-  const needsOwner = onboarding.filter((item) => ['pending', 'in_progress'].includes(item.status) && ['owner', 'both', 'external_provider'].includes(captureOf(item, 'responsible', 'owner'))).slice(0, 8);
+  const needsOwnerAll = onboarding.filter((item) => ['pending', 'in_progress'].includes(item.status) && ['owner', 'both', 'external_provider'].includes(captureOf(item, 'responsible', 'owner')));
+  const needsOwner = needsOwnerAll.slice(0, 8);
   const needsTyreOps = onboarding.filter((item) => ['pending', 'in_progress'].includes(item.status) && ['tyreops', 'both'].includes(captureOf(item, 'responsible', 'owner'))).slice(0, 8);
-  const blockedItems = onboarding.filter((item) => item.status === 'blocked').slice(0, 8);
-  const pilotBlockers = onboarding.filter((item) => !['confirmed', 'not_applicable'].includes(item.status) && captureOf(item, 'priority') === 'required_before_pilot').slice(0, 8);
+  const blockedItemsAll = onboarding.filter((item) => item.status === 'blocked');
+  const blockedItems = blockedItemsAll.slice(0, 8);
+  const pilotBlockersAll = onboarding.filter((item) => !['confirmed', 'not_applicable'].includes(item.status) && captureOf(item, 'priority') === 'required_before_pilot');
+  const pilotBlockers = pilotBlockersAll.slice(0, 8);
   const integrations = onboarding.filter((item) => item.item_key?.startsWith('integration_'));
-  const meetingItems = [...pilotBlockers, ...needsOwner, ...blockedItems].filter((item, index, rows) => rows.findIndex((row) => row.item_key === item.item_key) === index);
-  const currentMeetingItem = meetingItems[Math.min(meetingIndex, Math.max(0, meetingItems.length - 1))];
+  const meetingItems = [...pilotBlockersAll, ...needsOwnerAll, ...blockedItemsAll].filter((item, index, rows) => rows.findIndex((row) => row.item_key === item.item_key) === index);
+  const meetingCount = meetingItems.length;
+  const clampedMeetingIndex = meetingCount === 0 ? 0 : Math.min(Math.max(0, meetingIndex), meetingCount);
+  const currentMeetingItem = clampedMeetingIndex < meetingCount ? meetingItems[clampedMeetingIndex] : null;
   const confirmedItems = onboarding.filter((item) => item.status === 'confirmed' || item.status === 'not_applicable');
   const ownerStillNeeded = onboarding.filter((item) => !['confirmed', 'not_applicable'].includes(item.status) && ['owner', 'both', 'external_provider'].includes(captureOf(item, 'responsible', 'owner')));
-  async function meetingAction(status: string, advance = true) {
+
+  useEffect(() => {
+    if (meetingCount === 0) {
+      if (meetingIndex !== 0) setMeetingIndex(0);
+      return;
+    }
+    if (meetingIndex < 0) setMeetingIndex(0);
+    else if (meetingIndex > meetingCount) setMeetingIndex(meetingCount);
+  }, [meetingCount, meetingIndex]);
+
+  useEffect(() => {
+    if (!currentMeetingItem) {
+      setMeetingAnswer('');
+      setMeetingNotes('');
+      setMeetingError('');
+      setMeetingMoreOpen(false);
+      return;
+    }
+    setMeetingAnswer(answerOf(currentMeetingItem.captured_value));
+    setMeetingNotes('');
+    setMeetingError('');
+    setMeetingMoreOpen(false);
+  }, [currentMeetingItem?.item_key]);
+
+  function advanceMeeting() {
+    setMeetingIndex((index) => Math.min(index + 1, meetingCount));
+  }
+
+  async function meetingAction(status: string, options?: { requireAnswer?: boolean }) {
     if (!currentMeetingItem) return;
+    const answer = meetingAnswer.trim();
+    if (options?.requireAnswer && !answer) {
+      setMeetingError('Capture a real answer before Save & Continue.');
+      return;
+    }
+    setMeetingError('');
+    const nextCaptured = { ...captured(currentMeetingItem.captured_value), ...(answer ? { answer } : {}) };
     await save(`item:${currentMeetingItem.item_key}`, {
       entity: 'onboarding',
       item_key: currentMeetingItem.item_key,
       status,
-      captured_value: captured(currentMeetingItem.captured_value),
-      notes: [currentMeetingItem.notes, meetingNotes].filter(Boolean).join('\n'),
+      captured_value: nextCaptured,
+      notes: [currentMeetingItem.notes, meetingNotes.trim()].filter(Boolean).join('\n'),
     });
     setMeetingNotes('');
-    if (advance) setMeetingIndex((index) => Math.min(index + 1, meetingItems.length));
+    setMeetingMoreOpen(false);
+    advanceMeeting();
   }
 
   function sectionState(section: string) {
@@ -141,18 +185,29 @@ export default function BusinessSetupClient() {
       <button className="btn primary" type="button" onClick={() => setMeetingMode((value) => !value)}>{meetingMode ? 'Show Full Setup' : 'Start Meeting Mode'}</button>
     </section>
     {meetingMode ? <section className="meetingModeFocus">{currentMeetingItem ? <>
-      <div className="meetingQuestion"><span>{meetingIndex + 1} of {meetingItems.length}</span><h2>{currentMeetingItem.label}</h2><p>{captureOf(currentMeetingItem, 'explanation') || 'Capture the owner answer or mark what should happen next.'}</p></div>
-      <ChecklistItem item={currentMeetingItem} patchItem={patchItem} save={save} saveState={saveState} />
-      <label className="meetingNotes"><span>Meeting notes</span><textarea rows={3} value={meetingNotes} onChange={(event) => setMeetingNotes(event.target.value)} placeholder="Non-secret notes from this conversation" /></label>
-      <div className="meetingActions">
-        <button className="btn" type="button" disabled={meetingIndex === 0} onClick={() => setMeetingIndex((index) => Math.max(0, index - 1))}>Back</button>
-        <button className="btn primary" type="button" onClick={() => void meetingAction('confirmed')}>Save & Continue</button>
-        <button className="btn" type="button" onClick={() => setMeetingIndex((index) => Math.min(index + 1, meetingItems.length))}>Skip for Later</button>
-        <button className="btn" type="button" onClick={() => void meetingAction('blocked')}>Blocked</button>
-        <button className="btn" type="button" onClick={() => void meetingAction('not_applicable')}>Not Applicable</button>
-        <button className="btn" type="button" onClick={() => setMeetingMode(false)}>Exit Meeting Mode</button>
+      <div className="meetingQuestion"><span>{clampedMeetingIndex + 1} of {meetingCount}</span><h2>{currentMeetingItem.label}</h2><p>{captureOf(currentMeetingItem, 'explanation') || 'Capture the owner answer or mark what should happen next.'}</p></div>
+      <div className="meetingSimpleForm">
+        <label className="meetingAnswer"><span>Answer</span><input value={meetingAnswer} onChange={(event) => { setMeetingAnswer(event.target.value); if (meetingError) setMeetingError(''); }} placeholder="Owner answer - required to save" /></label>
+        <label className="meetingNotes"><span>Short notes</span><textarea rows={2} value={meetingNotes} onChange={(event) => setMeetingNotes(event.target.value)} placeholder="Optional non-secret notes" /></label>
+        {meetingError ? <p className="meetingError">{meetingError}</p> : null}
+        <SaveState state={saveState[`item:${currentMeetingItem.item_key}`]} />
       </div>
-    </> : <div className="meetingSummary"><h2>Onboarding Summary</h2><div className="handoverQueues"><div className="handoverQueue"><h2>Confirmed</h2><p>{confirmedItems.length} items</p></div><div className="handoverQueue"><h2>Still Need From Owner</h2><p>{ownerStillNeeded.length} items</p></div><div className="handoverQueue"><h2>Needs TyreOps</h2><p>{needsTyreOps.length} items</p></div><div className="handoverQueue"><h2>Blocked</h2><p>{blockedItems.length} items</p></div></div><strong>Ready for Pilot: {readinessMissing.length === 0 ? 'YES' : 'NO'}</strong><button className="btn" type="button" onClick={() => { setMeetingIndex(0); setMeetingMode(false); }}>Exit Meeting Mode</button></div>}</section> : null}
+      <div className="meetingActions">
+        <button className="btn primary meetingPrimary" type="button" disabled={saveState[`item:${currentMeetingItem.item_key}`] === 'saving'} onClick={() => void meetingAction('confirmed', { requireAnswer: true })}>Save & Continue</button>
+        <div className={`meetingOverflow${meetingMoreOpen ? ' open' : ''}`}>
+          <button className="btn meetingSecondary" type="button" aria-expanded={meetingMoreOpen} onClick={() => setMeetingMoreOpen((open) => !open)}>More</button>
+          {meetingMoreOpen ? <div className="meetingOverflowMenu" role="menu">
+            <button className="btn" type="button" role="menuitem" onClick={() => { setMeetingMoreOpen(false); advanceMeeting(); }}>Skip for Later</button>
+            <button className="btn" type="button" role="menuitem" onClick={() => void meetingAction('blocked')}>Blocked</button>
+            <button className="btn" type="button" role="menuitem" onClick={() => void meetingAction('not_applicable')}>Not Applicable</button>
+          </div> : null}
+        </div>
+        <div className="meetingTertiary">
+          <button className="btn meetingQuiet" type="button" disabled={clampedMeetingIndex === 0} onClick={() => setMeetingIndex((index) => Math.max(0, index - 1))}>Back</button>
+          <button className="btn meetingQuiet" type="button" onClick={() => setMeetingMode(false)}>Exit</button>
+        </div>
+      </div>
+    </> : <div className="meetingSummary"><h2>Onboarding Summary</h2><div className="handoverQueues"><div className="handoverQueue"><h2>Confirmed</h2><p>{confirmedItems.length} items</p></div><div className="handoverQueue"><h2>Still Need From Owner</h2><p>{ownerStillNeeded.length} items</p></div><div className="handoverQueue"><h2>Needs TyreOps</h2><p>{needsTyreOps.length} items</p></div><div className="handoverQueue"><h2>Blocked</h2><p>{blockedItemsAll.length} items</p></div></div><strong>Ready for Pilot: {readinessMissing.length === 0 ? 'YES' : 'NO'}</strong><button className="btn meetingQuiet" type="button" onClick={() => { setMeetingIndex(0); setMeetingMode(false); }}>Exit Meeting Mode</button></div>}</section> : null}
     <section className="handoverQueues">{[['Needs Owner', needsOwner], ['Needs TyreOps', needsTyreOps], ['Blocked', blockedItems], ['Pilot blockers', pilotBlockers]].map(([title, rows]) => <div className="handoverQueue" key={title as string}><h2>{title as string}</h2>{(rows as Row[]).length ? (rows as Row[]).map((item) => <a href={`#setup-${item.section}`} key={item.item_key}><strong>{item.label}</strong><span>{pretty(captureOf(item, 'priority') || 'required_before_pilot')}</span></a>) : <p>Clear</p>}</div>)}</section>
     <section className="stageProgressGrid">{onboardingStages.map((stage) => { const rows = onboarding.filter((item) => captureOf(item, 'stage') === stage); const done = rows.filter((item) => ['confirmed', 'not_applicable'].includes(item.status)).length; const pct = rows.length ? Math.round((done / rows.length) * 100) : 0; return <a href={`#${anchor(stage)}`} key={stage}><strong>{stage}</strong><span>{done}/{rows.length}</span><i><b style={{ width: `${pct}%` }} /></i></a>; })}</section>
     {integrations.length ? <section className="integrationInventory" id={anchor('APIs & Integrations')}><div className="setupSubhead"><div><h2>Integration Inventory</h2><p>Credential status only. Never enter passwords, API keys, access tokens or secrets.</p></div></div><div className="integrationGrid">{integrations.map((item) => <article className="integrationCard" key={item.item_key}><div><strong>{item.label}</strong><span>{captureOf(item, 'integration_purpose')}</span></div><dl><div><dt>Owner</dt><dd>{captureOf(item, 'integration_owner')}</dd></div><div><dt>Credential location</dt><dd>{captureOf(item, 'credential_location')}</dd></div><div><dt>Billing</dt><dd>{captureOf(item, 'billing_responsibility')}</dd></div><div><dt>Identifier</dt><dd>{captureOf(item, 'non_secret_identifier') || 'Not recorded'}</dd></div></dl><div className="integrationFlags"><span className={boolCapture(item, 'connected') ? 'confirmed' : 'needs'}>Connected</span><span className={boolCapture(item, 'production') ? 'confirmed' : 'needs'}>Production</span><span className={boolCapture(item, 'tested') ? 'confirmed' : 'needs'}>Tested</span></div></article>)}</div></section> : null}
