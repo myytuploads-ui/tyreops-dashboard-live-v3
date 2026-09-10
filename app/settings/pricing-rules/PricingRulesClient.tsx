@@ -1,0 +1,123 @@
+'use client';
+
+import { useEffect, useState } from 'react';
+
+type Row = Record<string, any>;
+
+const defaultTemplate = 'Got a job in {area} - {quantity}x {tyre_size}, {urgency}. Customer is ready. Send price + ETA{offer_link}.';
+
+export default function PricingRulesClient({ config }: { config: Row }) {
+  const [data, setData] = useState<Row>({});
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [notice, setNotice] = useState('');
+  const [price, setPrice] = useState<Row>({ tyre_size: '', tier: 'budget', customer_base_price: '', active: true, owner_confirmed: false, fitting_included: true, disposal_included: false });
+  const [coverage, setCoverage] = useState<Row>({ area_key: '', coverage_status: 'manual_quote', active: false, owner_confirmed: false });
+  const [surcharge, setSurcharge] = useState<Row>({ name: '', surcharge_type: 'motorway', calculation_type: 'fixed', amount: '', priority: 100, stackable: true, active: false, owner_confirmed: false });
+  const [timeRule, setTimeRule] = useState<Row>({ name: '', rule_type: 'out_of_hours', start_time: '', end_time: '', surcharge_type: 'out_of_hours', amount: '', active: false, owner_confirmed: false });
+  const [quantityRule, setQuantityRule] = useState<Row>({ name: '', min_quantity: 2, max_quantity: 4, adjustment_type: 'manual_quote', amount: '', active: false, owner_confirmed: false });
+  const [depositRule, setDepositRule] = useState<Row>({ min_job_value_gbp: '', max_job_value_gbp: '', deposit_fixed_gbp: '', active: true, owner_confirmed: true, ai_may_use: true });
+  const [method, setMethod] = useState<Row>({ active_method: 'manual_quote', fallback_method: 'manual_quote', automatic_customer_pricing_enabled: false, owner_confirmed: false });
+  const [dispatch, setDispatch] = useState<Row>({ automatic_fitter_dispatch_enabled: false, dispatch_strategy: 'manual', owner_first_refusal_enabled: false, owner_confirmed: false });
+  const [template, setTemplate] = useState(defaultTemplate);
+  const [quoteInput, setQuoteInput] = useState<Row>({ tyre_size: '', tier: 'budget', quantity: '1', postcode: '', requested_time: '', vehicle_category: 'car', motorway: false });
+  const [quote, setQuote] = useState<Row | null>(null);
+
+  async function load() {
+    try {
+      const response = await fetch('/api/pricing-rules', { cache: 'no-store' });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || 'Pricing rules could not be loaded.');
+      setData(result);
+      if (result.pricing_method) setMethod(result.pricing_method);
+      if (result.dispatch_settings) setDispatch(result.dispatch_settings);
+      if (result.templates?.[0]) setTemplate(result.templates[0].template_body);
+      setError('');
+    } catch (caught) { setError(caught instanceof Error ? caught.message : 'Pricing rules could not be loaded.'); }
+    finally { setLoading(false); }
+  }
+  useEffect(() => { void load(); }, []);
+
+  async function save(table: string, values: Row, id?: string) {
+    setNotice(''); setError('');
+    try {
+      const response = await fetch('/api/pricing-rules', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'save', table, id, values }) });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || 'Save failed.');
+      setNotice('Saved.'); await load();
+    } catch (caught) { setError(caught instanceof Error ? caught.message : 'Save failed.'); }
+  }
+  async function deactivate(table: string, id: string, active: boolean) {
+    if (!window.confirm(`${active ? 'Deactivate' : 'Reactivate'} this rule?`)) return;
+    setNotice(''); setError('');
+    try {
+      const response = await fetch('/api/pricing-rules', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'deactivate', table, id, values: { active: !active } }) });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || 'Save failed.');
+      setNotice('Saved.'); await load();
+    } catch (caught) { setError(caught instanceof Error ? caught.message : 'Save failed.'); }
+  }
+  async function testQuote() {
+    setQuote(null); setError('');
+    const response = await fetch('/api/pricing-rules', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'quote', input: { ...quoteInput, quantity: Number(quoteInput.quantity) } }) });
+    const result = await response.json();
+    if (!response.ok) { setError(result.error || 'Quote failed.'); return; }
+    setQuote(result.quote);
+  }
+  const preview = template
+    .replaceAll('{area}', quoteInput.postcode || 'UB5')
+    .replaceAll('{tyre_size}', quoteInput.tyre_size || '225/45R17')
+    .replaceAll('{quantity}', String(quoteInput.quantity || '1'))
+    .replaceAll('{urgency}', quoteInput.requested_time || 'needed ASAP')
+    .replaceAll('{requested_time}', quoteInput.requested_time || 'ASAP')
+    .replaceAll('{offer_link}', ' here: [secure link]');
+
+  return <div className="pricingRules">
+    {loading ? <div className="empty">Loading pricing rules...</div> : null}
+    {error ? <div className="error">{error}</div> : null}
+    {notice ? <div className="success">{notice}</div> : null}
+    <section className="pricingHero"><div><span>Owner configuration</span><h2>Simple price formula</h2><p>TyreOps prices as: base tyre price + location rule + overnight/emergency extras. Only active, owner-confirmed rules are used. Unknown information goes back to owner pricing.</p></div><div className="rulesStatusGrid"><span>BASE<b>Tyre price</b></span><span>PLUS<b>Location / emergency rules</b></span><span>{method.automatic_customer_pricing_enabled ? 'ON' : 'OFF'}<b>Automatic pricing</b></span><span>{String(config.group_first_dispatch_enabled) === 'false' ? 'OFF' : String(config.group_first_dispatch_enabled || 'OFF')}<b>Group First</b></span></div></section>
+
+    <section className="panel"><div className="panelHead"><h2>Pricing Method</h2><p>Do not guess. Confirm how the owner prices jobs.</p></div><div className="panelBody quoteTester"><label><span>Active method</span><select value={method.active_method || 'manual_quote'} onChange={(e) => setMethod({ ...method, active_method: e.target.value })}>{['manual_quote','fixed_price','supplier_cost_plus_markup','supplier_cost_plus_margin','hybrid'].map((v) => <option value={v} key={v}>{v.replaceAll('_',' ')}</option>)}</select></label><label><span>Fallback</span><select value={method.fallback_method || 'manual_quote'} onChange={(e) => setMethod({ ...method, fallback_method: e.target.value })}>{['manual_quote','fixed_price','supplier_cost_plus_markup','supplier_cost_plus_margin','hybrid'].map((v) => <option value={v} key={v}>{v.replaceAll('_',' ')}</option>)}</select></label><label className="quoteCheck"><input type="checkbox" checked={Boolean(method.owner_confirmed)} onChange={(e) => setMethod({ ...method, owner_confirmed: e.target.checked })} /> Owner confirmed</label><label className="quoteCheck"><input type="checkbox" checked={Boolean(method.automatic_customer_pricing_enabled)} onChange={(e) => setMethod({ ...method, automatic_customer_pricing_enabled: e.target.checked })} /> Automatic customer pricing</label><button className="btn primary" type="button" onClick={() => void save('pricing_methods', method, method.id)}>Save pricing method</button></div></section>
+
+    <section className="panel"><div className="panelHead"><h2>Base Tyre Prices</h2><p>Add the normal customer price for each tyre size/tier. Location and overnight/emergency extras are added separately below.</p></div><div className="panelBody quoteTester"><label><span>Tyre size</span><input value={price.tyre_size} onChange={(e) => setPrice({ ...price, tyre_size: e.target.value })} placeholder="225/45R17" /></label><label><span>Tier</span><select value={price.tier} onChange={(e) => setPrice({ ...price, tier: e.target.value })}><option value="budget">Budget</option><option value="mid_range">Mid-range</option><option value="premium">Premium</option></select></label><label><span>Base customer price</span><input inputMode="decimal" value={price.customer_base_price} onChange={(e) => setPrice({ ...price, customer_base_price: e.target.value })} /></label><label><span>Source</span><input value={price.source || ''} onChange={(e) => setPrice({ ...price, source: e.target.value })} /></label><label className="quoteCheck"><input type="checkbox" checked={Boolean(price.active)} onChange={(e) => setPrice({ ...price, active: e.target.checked })} /> Active</label><label className="quoteCheck"><input type="checkbox" checked={Boolean(price.owner_confirmed)} onChange={(e) => setPrice({ ...price, owner_confirmed: e.target.checked })} /> Owner confirmed</label><button className="btn primary" type="button" onClick={() => void save('tyre_price_catalogue', price, price.id)}>{price.id ? 'Save tyre price' : 'Add tyre price'}</button></div><List rows={data.prices || []} titleKey="tyre_size" subKey="tier" onEdit={setPrice} onToggle={(row) => void deactivate('tyre_price_catalogue', row.id, Boolean(row.active))} /></section>
+
+    <section className="panel"><div className="panelHead"><h2>Location Price Rules</h2><p>Use postcode prefixes like UB5 or HA. Choose included, add location price, manual quote, or unavailable.</p></div><div className="panelBody quoteTester"><label><span>Postcode prefix/district</span><input value={coverage.area_key} onChange={(e) => setCoverage({ ...coverage, area_key: e.target.value })} placeholder="UB5" /></label><label><span>Location rule</span><select value={coverage.coverage_status} onChange={(e) => setCoverage({ ...coverage, coverage_status: e.target.value })}><option value="included">Included</option><option value="surcharge">Add location price</option><option value="manual_quote">Manual quote</option><option value="unavailable">Unavailable</option></select></label><label><span>Location extra</span><input inputMode="decimal" value={coverage.amount || ''} onChange={(e) => setCoverage({ ...coverage, amount: e.target.value })} placeholder="e.g. 20" /></label><label className="quoteCheck"><input type="checkbox" checked={Boolean(coverage.active)} onChange={(e) => setCoverage({ ...coverage, active: e.target.checked })} /> Active</label><label className="quoteCheck"><input type="checkbox" checked={Boolean(coverage.owner_confirmed)} onChange={(e) => setCoverage({ ...coverage, owner_confirmed: e.target.checked })} /> Owner confirmed</label><button className="btn primary" type="button" onClick={() => void save('coverage_rules', coverage, coverage.id)}>{coverage.id ? 'Save location rule' : 'Add location rule'}</button></div><List rows={data.coverage || []} titleKey="area_key" subKey="coverage_status" onEdit={setCoverage} onToggle={(row) => void deactivate('coverage_rules', row.id, Boolean(row.active))} /></section>
+
+    <section className="panel"><div className="panelHead"><h2>Surcharges</h2><p>Only active, owner-confirmed surcharges participate in quotes.</p></div><div className="panelBody quoteTester"><label><span>Name</span><input value={surcharge.name} onChange={(e) => setSurcharge({ ...surcharge, name: e.target.value })} /></label><label><span>Type</span><select value={surcharge.surcharge_type} onChange={(e) => setSurcharge({ ...surcharge, surcharge_type: e.target.value })}>{['night','out_of_hours','motorway','roadside','area','distance','callout','locking_wheel_nut','quantity','custom'].map((v) => <option value={v} key={v}>{v.replaceAll('_',' ')}</option>)}</select></label><label><span>Calculation</span><select value={surcharge.calculation_type} onChange={(e) => setSurcharge({ ...surcharge, calculation_type: e.target.value })}><option value="fixed">Fixed</option><option value="percentage">Percentage</option></select></label><label><span>Amount</span><input inputMode="decimal" value={surcharge.amount} onChange={(e) => setSurcharge({ ...surcharge, amount: e.target.value })} /></label><label className="quoteCheck"><input type="checkbox" checked={Boolean(surcharge.active)} onChange={(e) => setSurcharge({ ...surcharge, active: e.target.checked })} /> Active</label><label className="quoteCheck"><input type="checkbox" checked={Boolean(surcharge.owner_confirmed)} onChange={(e) => setSurcharge({ ...surcharge, owner_confirmed: e.target.checked })} /> Owner confirmed</label><button className="btn primary" type="button" onClick={() => void save('pricing_surcharge_rules', surcharge, surcharge.id)}>{surcharge.id ? 'Save surcharge' : 'Add surcharge'}</button></div><List rows={data.surcharges || []} titleKey="name" subKey="surcharge_type" onEdit={setSurcharge} onToggle={(row) => void deactivate('pricing_surcharge_rules', row.id, Boolean(row.active))} /></section>
+
+    <section className="panel"><div className="panelHead"><h2>Overnight / Emergency Price Rules</h2><p>Add simple time windows, for example 18:00 to 08:00 = add £40. These are added on top of the base tyre and location price.</p></div><div className="panelBody quoteTester"><label><span>Rule name</span><input value={timeRule.name} onChange={(e) => setTimeRule({ ...timeRule, name: e.target.value })} placeholder="Overnight emergency" /></label><label><span>Starts</span><input value={timeRule.start_time} onChange={(e) => setTimeRule({ ...timeRule, start_time: e.target.value })} placeholder="18:00" /></label><label><span>Ends</span><input value={timeRule.end_time} onChange={(e) => setTimeRule({ ...timeRule, end_time: e.target.value })} placeholder="08:00" /></label><label><span>Emergency extra</span><input inputMode="decimal" value={timeRule.amount || ''} onChange={(e) => setTimeRule({ ...timeRule, amount: e.target.value })} placeholder="e.g. 40" /></label><label className="quoteCheck"><input type="checkbox" checked={Boolean(timeRule.active)} onChange={(e) => setTimeRule({ ...timeRule, active: e.target.checked })} /> Active</label><label className="quoteCheck"><input type="checkbox" checked={Boolean(timeRule.owner_confirmed)} onChange={(e) => setTimeRule({ ...timeRule, owner_confirmed: e.target.checked })} /> Owner confirmed</label><button className="btn primary" type="button" onClick={() => void save('pricing_time_rules', { ...timeRule, rule_type: timeRule.rule_type || 'out_of_hours', surcharge_type: timeRule.surcharge_type || 'out_of_hours' }, timeRule.id)}>{timeRule.id ? 'Save emergency rule' : 'Add emergency rule'}</button></div><List rows={data.time_rules || []} titleKey="name" subKey="rule_type" onEdit={setTimeRule} onToggle={(row) => void deactivate('pricing_time_rules', row.id, Boolean(row.active))} /></section>
+
+    <section className="panel"><div className="panelHead"><h2>Quantity Rules</h2><p>Discounts or adjustments stay inactive until owner confirmed.</p></div><div className="panelBody quoteTester"><label><span>Name</span><input value={quantityRule.name} onChange={(e) => setQuantityRule({ ...quantityRule, name: e.target.value })} /></label><label><span>Min qty</span><input inputMode="numeric" value={quantityRule.min_quantity} onChange={(e) => setQuantityRule({ ...quantityRule, min_quantity: e.target.value })} /></label><label><span>Max qty</span><input inputMode="numeric" value={quantityRule.max_quantity} onChange={(e) => setQuantityRule({ ...quantityRule, max_quantity: e.target.value })} /></label><label><span>Type</span><select value={quantityRule.adjustment_type} onChange={(e) => setQuantityRule({ ...quantityRule, adjustment_type: e.target.value })}><option value="manual_quote">Manual quote</option><option value="fixed_quantity_price">Fixed quantity price</option><option value="per_tyre_adjustment">Per-tyre adjustment</option><option value="percentage_adjustment">Percentage adjustment</option><option value="no_discount">No discount</option></select></label><label><span>Amount</span><input inputMode="decimal" value={quantityRule.amount || ''} onChange={(e) => setQuantityRule({ ...quantityRule, amount: e.target.value })} /></label><label className="quoteCheck"><input type="checkbox" checked={Boolean(quantityRule.owner_confirmed)} onChange={(e) => setQuantityRule({ ...quantityRule, owner_confirmed: e.target.checked })} /> Owner confirmed</label><button className="btn primary" type="button" onClick={() => void save('pricing_quantity_rules', quantityRule, quantityRule.id)}>{quantityRule.id ? 'Save quantity rule' : 'Add quantity rule'}</button></div><List rows={data.quantity_rules || []} titleKey="name" subKey="adjustment_type" onEdit={setQuantityRule} onToggle={(row) => void deactivate('pricing_quantity_rules', row.id, Boolean(row.active))} /></section>
+
+    <section className="panel"><div className="panelHead"><h2>Test a Quote</h2><p>Checks the simple formula: tyre price + location rule + overnight/emergency extras. Shows manual pricing if anything is missing.</p></div><div className="panelBody quoteTester"><label><span>Tyre size</span><input value={quoteInput.tyre_size} onChange={(e) => setQuoteInput({ ...quoteInput, tyre_size: e.target.value })} /></label><label><span>Tier</span><select value={quoteInput.tier} onChange={(e) => setQuoteInput({ ...quoteInput, tier: e.target.value })}><option value="budget">Budget</option><option value="mid_range">Mid-range</option><option value="premium">Premium</option></select></label><label><span>Quantity</span><input inputMode="numeric" value={quoteInput.quantity} onChange={(e) => setQuoteInput({ ...quoteInput, quantity: e.target.value })} /></label><label><span>Postcode</span><input value={quoteInput.postcode} onChange={(e) => setQuoteInput({ ...quoteInput, postcode: e.target.value })} /></label><label><span>Requested time</span><input value={quoteInput.requested_time} onChange={(e) => setQuoteInput({ ...quoteInput, requested_time: e.target.value })} placeholder="23:30" /></label><label className="quoteCheck"><input type="checkbox" checked={Boolean(quoteInput.motorway)} onChange={(e) => setQuoteInput({ ...quoteInput, motorway: e.target.checked })} /> Motorway / roadside</label><button className="btn primary" type="button" onClick={() => void testQuote()}>Test quote</button>{quote ? <div className="quoteResult"><strong>{quote.quote_status === 'priced' ? `Customer price £${quote.customer_price}` : 'Needs manual pricing'}</strong><span>{quote.reason || `Base £${quote.base_price}`}</span>{quote.adjustments?.map((row: Row) => <em key={row.label}>{row.label}: £{row.amount}</em>)}</div> : null}</div></section>
+
+    <section className="panel"><div className="panelHead"><h2>Group Message Template</h2><p>Only safe placeholders are accepted.</p></div><div className="panelBody"><textarea className="templateEditor" rows={4} value={template} onChange={(e) => setTemplate(e.target.value)} /><div className="quoteResult"><strong>Preview</strong><span>{preview}</span></div><div className="actionBar"><button className="btn" type="button" onClick={() => setTemplate(defaultTemplate)}>Reset to Recommended</button><button className="btn primary" type="button" onClick={() => void save('group_message_templates', { template_name: 'Recommended', template_body: template, active: true, owner_confirmed: true }, data.templates?.[0]?.id)}>Save template</button></div></div></section>
+
+    <section className="panel"><div className="panelHead"><h2>Dispatch Controls</h2><p>Automatic Fitter Dispatch writes the exact system_config key consumed by WF-04. Group First remains separate and off unless enabled later.</p></div><div className="panelBody quoteTester"><label className="quoteCheck"><input type="checkbox" checked={Boolean(dispatch.automatic_fitter_dispatch_enabled)} onChange={(e) => setDispatch({ ...dispatch, automatic_fitter_dispatch_enabled: e.target.checked })} /> Automatic Fitter Dispatch</label><label><span>Strategy</span><select value={dispatch.dispatch_strategy || 'manual'} onChange={(e) => setDispatch({ ...dispatch, dispatch_strategy: e.target.value })}><option value="manual">Manual</option><option value="registered_fitters">Registered Fitters</option><option value="group_first">Group First</option><option value="hybrid">Hybrid</option></select></label><label><span>Group wait minutes</span><input inputMode="numeric" value={dispatch.group_wait_minutes || ''} onChange={(e) => setDispatch({ ...dispatch, group_wait_minutes: e.target.value })} /></label><label className="quoteCheck"><input type="checkbox" checked={Boolean(dispatch.owner_confirmed)} onChange={(e) => setDispatch({ ...dispatch, owner_confirmed: e.target.checked })} /> Owner confirmed</label><div className="quoteResult"><strong>{dispatch.automatic_fitter_dispatch_enabled ? 'ON' : 'OFF'}</strong><span>{dispatch.automatic_fitter_dispatch_enabled ? 'TyreOps may automatically offer eligible paid jobs to registered fitters according to dispatch strategy.' : 'TyreOps will not automatically broadcast to registered fitters. Owner can assign manually or use group/manual paths.'}</span></div><button className="btn primary" type="button" onClick={() => window.confirm('Save Automatic Fitter Dispatch? This will not cancel existing assignments or in-flight jobs.') && void save('dispatch_settings', dispatch, dispatch.id)}>Save dispatch settings</button></div></section>
+    <DepositRulesPanel data={data} value={depositRule} onChange={setDepositRule} onSave={save} onToggle={deactivate} />
+  </div>;
+}
+
+function DepositRulesPanel({ data, value, onChange, onSave, onToggle }: { data: Row; value: Row; onChange: (row: Row) => void; onSave: (table: string, values: Row, id?: string) => Promise<void>; onToggle: (table: string, id: string, active: boolean) => Promise<void> }) {
+  const rows = data.deposit_rules || [];
+  return <section className="panel">
+    <div className="panelHead"><h2>Deposit Rules</h2><p>Use exact owner-confirmed pairs only. TyreOps never interpolates an unmatched deposit.</p></div>
+    <div className="panelBody quoteTester">
+      <label><span>Customer price £</span><input inputMode="decimal" value={value.min_job_value_gbp} onChange={(event) => onChange({ ...value, min_job_value_gbp: event.target.value, max_job_value_gbp: event.target.value })} /></label>
+      <label><span>Deposit £</span><input inputMode="decimal" value={value.deposit_fixed_gbp} onChange={(event) => onChange({ ...value, deposit_fixed_gbp: event.target.value })} /></label>
+      <label className="quoteCheck"><input type="checkbox" checked={Boolean(value.active)} onChange={(event) => onChange({ ...value, active: event.target.checked })} /> Active</label>
+      <label className="quoteCheck"><input type="checkbox" checked={Boolean(value.owner_confirmed)} onChange={(event) => onChange({ ...value, owner_confirmed: event.target.checked })} /> Owner confirmed</label>
+      <label className="quoteCheck"><input type="checkbox" checked={Boolean(value.ai_may_use)} onChange={(event) => onChange({ ...value, ai_may_use: event.target.checked })} /> AI may use this deposit</label>
+      <button className="btn primary" type="button" onClick={() => void onSave('deposit_rules', value, value.id)}>{value.id ? 'Save deposit rule' : 'Add deposit rule'}</button>
+    </div>
+    <div className="rulesList">{rows.length ? rows.map((row: Row) => <article key={row.id}>
+      <div><strong>£{Number(row.min_job_value_gbp).toFixed(0)} price → £{Number(row.deposit_fixed_gbp).toFixed(0)} deposit</strong><span>{row.active ? 'active' : 'inactive'} · {row.owner_confirmed ? 'confirmed' : 'unconfirmed'} · {row.ai_may_use ? 'AI may use' : 'owner only'}</span></div>
+      <div className="ruleRowActions"><button className="btn" type="button" onClick={() => onChange(row)}>Edit</button><button className="btn" type="button" onClick={() => void onToggle('deposit_rules', row.id, Boolean(row.active))}>{row.active ? 'Deactivate' : 'Reactivate'}</button></div>
+    </article>) : <div className="empty">No exact deposit rules yet. Unmatched prices stay with the owner.</div>}</div>
+  </section>;
+}
+
+function List({ rows, titleKey, subKey, onEdit, onToggle }: { rows: Row[]; titleKey: string; subKey: string; onEdit?: (row: Row) => void; onToggle?: (row: Row) => void }) {
+  return <div className="rulesList">{rows.length ? rows.map((row) => <article key={row.id}><div><strong>{row[titleKey]}</strong><span>{row[subKey]} · {row.active ? 'active' : 'inactive'} · {row.owner_confirmed ? 'confirmed' : 'unconfirmed'}</span></div><div className="ruleRowActions">{onEdit ? <button className="btn" type="button" onClick={() => onEdit(row)}>Edit</button> : null}{onToggle ? <button className="btn" type="button" onClick={() => onToggle(row)}>{row.active ? 'Deactivate' : 'Reactivate'}</button> : null}</div></article>) : <div className="empty">No rows yet.</div>}</div>;
+}

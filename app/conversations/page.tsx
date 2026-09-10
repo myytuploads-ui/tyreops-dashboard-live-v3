@@ -6,97 +6,191 @@ import ConversationsInbox, {
   type MessageActor,
 } from './ConversationsInbox';
 
+type Row = Record<string, any>;
+type ThreadMessage = ConversationMessage & { jobId: string | null; customerId: string | null };
+type Thread = { messages: ThreadMessage[]; seen: Set<string>; customerId: string | null };
+
 function isEnabled(value: unknown) {
-  return value === true || value === 1 || value === '1' || value === 'true';
+  return value === true || value === 1 || value === '1' || String(value).toLowerCase() === 'true';
 }
 
-function resolveMode(job: Record<string, any>): ConversationMode {
+function resolveMode(job?: Row): ConversationMode {
+  if (!job) return 'ai';
   const canonical = job.conversation_mode;
-  if (canonical !== null && canonical !== undefined && canonical !== '') {
+  if (canonical !== null && canonical !== undefined && String(canonical).trim()) {
     return String(canonical).toLowerCase() === 'human' ? 'human' : 'ai';
   }
   return isEnabled(job.ai_paused) || isEnabled(job.manual_reply_mode) ? 'human' : 'ai';
 }
 
 function resolveActor(value: unknown): MessageActor {
-  const actor = String(value || '').toLowerCase();
+  const actor = String(value || '').trim().toLowerCase();
   return actor === 'ai' || actor === 'owner' || actor === 'operator' || actor === 'system'
     ? actor
     : 'unknown';
 }
 
-function firstValue(row: Record<string, any> | undefined, keys: string[]) {
+function firstValue(row: Row | undefined, keys: string[]) {
   for (const key of keys) {
     const value = row?.[key];
-    if (value !== null && value !== undefined && String(value).trim()) return String(value);
+    if (value !== null && value !== undefined && String(value).trim()) return String(value).trim();
   }
   return '';
 }
 
+function timeValue(value: unknown) {
+  const timestamp = value ? new Date(String(value)).getTime() : 0;
+  return Number.isFinite(timestamp) ? timestamp : 0;
+}
+
 export default async function ConversationsPage() {
   const supabase = await createClient();
-  const [jobsResult, messagesResult, customersResult] = await Promise.all([
-    supabase.from('jobs').select('*').order('updated_at', { ascending: false }).limit(500),
-    supabase.from('messages').select('*').order('created_at', { ascending: false }).limit(2000),
-    supabase.from('customers').select('*').limit(500),
+  const [jobsResult, messagesResult, customersResult, fittersResult] = await Promise.all([
+    supabase.from('jobs').select('*').order('updated_at', { ascending: false }).limit(1000),
+    supabase.from('messages').select('*').order('created_at', { ascending: false }).limit(3000),
+    supabase.from('customers').select('*').limit(1000),
+    supabase.from('fitters').select('id,full_name').limit(1000),
   ]);
 
-  const errors = [jobsResult.error, messagesResult.error, customersResult.error]
+  const fatalErrors = [jobsResult.error, messagesResult.error]
     .filter(Boolean)
     .map(error => error?.message)
     .join(' ');
 
-  if (errors) {
-    return <><div className="topbar"><div className="headline"><div><h1>Conversations</h1><p>Customer messages and conversation ownership.</p></div></div></div><div className="error">Unable to load conversations. {errors}</div></>;
+  if (fatalErrors) {
+    return <><div className="topbar"><div className="headline"><div><h1>Conversations</h1><p>Customer messages and conversation ownership.</p></div></div></div><div className="error">Unable to load conversations. {fatalErrors}</div></>;
   }
 
-  const customers = new Map<string, Record<string, any>>(
-    (customersResult.data || []).map((customer: any) => [String(customer.id), customer])
+  const jobs = (jobsResult.data || []) as Row[];
+  const jobsById = new Map(jobs.map(job => [String(job.id), job]));
+  const jobsByCustomer = new Map<string, Row[]>();
+  for (const job of jobs) {
+    if (!job.customer_id) continue;
+    const customerId = String(job.customer_id);
+    const customerJobs = jobsByCustomer.get(customerId) || [];
+    customerJobs.push(job);
+    jobsByCustomer.set(customerId, customerJobs);
+  }
+  for (const customerJobs of jobsByCustomer.values()) {
+    customerJobs.sort((a, b) => timeValue(b.updated_at || b.created_at) - timeValue(a.updated_at || a.created_at));
+  }
+
+  const customers = new Map<string, Row>(
+    ((customersResult.data || []) as Row[]).map(customer => [String(customer.id), customer])
   );
-  const messagesByJob = new Map<string, ConversationMessage[]>();
+  const fitters = new Map<string, Row>(
+    ((fittersResult.data || []) as Row[]).map(fitter => [String(fitter.id), fitter])
+  );
+  const threads = new Map<string, Thread>();
+  let unlinkedMessageCount = 0;
+  let duplicateMessageCount = 0;
 
-  for (const row of messagesResult.data || []) {
-    if (!row.job_id) continue;
-    const jobId = String(row.job_id);
-    const message: ConversationMessage = {
+  for (const row of (messagesResult.data || []) as Row[]) {
+    const jobId = row.job_id ? String(row.job_id) : null;
+    const linkedJob = jobId ? jobsById.get(jobId) : undefined;
+    const customerId = row.customer_id
+      ? String(row.customer_id)
+      : linkedJob?.customer_id
+        ? String(linkedJob.customer_id)
+        : null;
+    const threadId = customerId ? `customer:${customerId}` : jobId ? `job:${jobId}` : null;
+
+    if (!threadId) {
+      unlinkedMessageCount += 1;
+      continue;
+    }
+
+    const thread = threads.get(threadId) || { messages: [], seen: new Set<string>(), customerId };
+    const providerId = firstValue(row, ['provider_message_id']);
+    const dedupeKey = providerId ? `provider:${providerId}` : `row:${String(row.id)}`;
+    if (thread.seen.has(dedupeKey)) {
+      duplicateMessageCount += 1;
+      continue;
+    }
+    thread.seen.add(dedupeKey);
+    thread.messages.push({
       id: String(row.id),
-      direction: String(row.direction || '').toLowerCase() === 'inbound' ? 'inbound' : 'outbound',
-      text: String(row.message_text || ''),
-      createdAt: row.created_at ? String(row.created_at) : '',
+      jobId,
+      customerId,
+      direction: String(row.direction || '').trim().toLowerCase().startsWith('in') ? 'inbound' : 'outbound',
+      text: firstValue(row, ['message_text', 'text', 'body']) || 'Empty message',
+      createdAt: firstValue(row, ['created_at']),
       actor: resolveActor(row.sent_by),
-    };
-    const history = messagesByJob.get(jobId) || [];
-    history.push(message);
-    messagesByJob.set(jobId, history);
+    });
+    threads.set(threadId, thread);
   }
 
-  for (const history of messagesByJob.values()) {
-    history.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
-  }
-
-  const conversations: Conversation[] = (jobsResult.data || []).flatMap((job: any) => {
-    const messages = messagesByJob.get(String(job.id)) || [];
-    if (!messages.length) return [];
-    const customer = job.customer_id ? customers.get(String(job.customer_id)) : undefined;
-    const latest = messages[messages.length - 1];
+  const conversations: Conversation[] = [];
+  for (const [threadId, thread] of threads) {
+    thread.messages.sort((a, b) => timeValue(a.createdAt) - timeValue(b.createdAt) || a.id.localeCompare(b.id));
+    const latest = thread.messages[thread.messages.length - 1];
+    const latestLinkedJobId = [...thread.messages].reverse().find(message => message.jobId && jobsById.has(message.jobId))?.jobId;
+    const explicitlyLinkedJob = latestLinkedJobId
+      ? jobsById.get(latestLinkedJobId)
+      : threadId.startsWith('job:')
+        ? jobsById.get(threadId.slice(4))
+        : undefined;
+    const job = explicitlyLinkedJob
+      ? explicitlyLinkedJob
+      : thread.customerId
+        ? jobsByCustomer.get(thread.customerId)?.[0]
+        : undefined;
+    const controlJobId = job?.id ? String(job.id) : null;
+    const customer = thread.customerId ? customers.get(thread.customerId) : undefined;
     const mode = resolveMode(job);
+    const jobStatus = firstValue(job, ['status']) || 'unlinked';
+    const ownerActionStatuses = new Set(['manual_review', 'awaiting_owner_price', 'awaiting_owner_assignment', 'awaiting_owner_first_refusal']);
+    const needsAttention = Boolean(job) && (
+      (mode === 'human' && latest.direction === 'inbound') || ownerActionStatuses.has(jobStatus)
+    );
+    const assignedFitter = job?.assigned_fitter_id ? fitters.get(String(job.assigned_fitter_id)) : undefined;
+    const location = firstValue(job, ['postcode', 'postcode_area', 'location']);
+    const tyreSize = firstValue(job, ['tyre_size']);
 
-    return [{
-      id: String(job.id),
-      customerName: firstValue(customer, ['full_name', 'customer_name', 'name']) || firstValue(job, ['customer_name']) || 'Customer',
-      phone: firstValue(customer, ['whatsapp_phone', 'phone', 'customer_phone', 'mobile']) || firstValue(job, ['customer_phone']) || '—',
-      publicJobId: firstValue(job, ['public_job_id']) || String(job.id),
-      jobStatus: firstValue(job, ['status']) || 'unknown',
+    conversations.push({
+      id: threadId,
+      jobId: controlJobId,
+      customerName: firstValue(customer, ['full_name', 'customer_name', 'name']) || firstValue(job, ['customer_name']) || 'Unknown customer',
+      phone: firstValue(customer, ['whatsapp_phone', 'phone', 'customer_phone', 'mobile', 'phone_number']) || firstValue(job, ['customer_phone']) || 'Phone unavailable',
+      publicJobId: firstValue(job, ['public_job_id']) || 'No linked job',
+      jobStatus,
+      jobHint: [location, tyreSize].filter(Boolean).join(' · ') || 'No job details',
       mode,
-      needsAttention: mode === 'human' && latest.direction === 'inbound',
-      latestText: latest.text || 'Empty message',
+      needsAttention,
+      attentionReason: mode === 'human' && latest.direction === 'inbound'
+        ? 'Customer replied in human mode'
+        : ownerActionStatuses.has(jobStatus)
+          ? jobStatus.replaceAll('_', ' ')
+          : '',
+      latestText: latest.text,
       latestAt: latest.createdAt,
-      messages,
-    }];
-  }).sort((a, b) => {
+      messages: thread.messages.map(({ jobId: _jobId, customerId: _customerId, ...message }) => message),
+      jobContext: job ? {
+        urgency: firstValue(job, ['urgency']),
+        tyreSize,
+        quantity: firstValue(job, ['tyre_quantity', 'quantity']),
+        location,
+        vehicleRegistration: firstValue(job, ['vehicle_registration', 'vehicle_reg', 'registration']),
+        requestedTime: firstValue(job, ['requested_time', 'preferred_time', 'appointment_time', 'requested_at']),
+        customerPrice: firstValue(job, ['customer_price', 'quoted_price']),
+        paymentStatus: firstValue(job, ['deposit_status', 'payment_status']),
+        fitterName: firstValue(assignedFitter, ['full_name']),
+        dispatchStatus: jobStatus,
+      } : null,
+    });
+  }
+
+  conversations.sort((a, b) => {
     if (a.needsAttention !== b.needsAttention) return a.needsAttention ? -1 : 1;
-    return new Date(b.latestAt).getTime() - new Date(a.latestAt).getTime();
+    return timeValue(b.latestAt) - timeValue(a.latestAt) || a.id.localeCompare(b.id);
   });
 
-  return <ConversationsInbox conversations={conversations} />;
+  const notices = [
+    customersResult.error ? 'Customer profiles could not be read; job details are being used as a fallback.' : '',
+    fittersResult.error ? 'Assigned fitter names are temporarily unavailable.' : '',
+    unlinkedMessageCount ? `${unlinkedMessageCount} message${unlinkedMessageCount === 1 ? '' : 's'} could not be linked to a customer or job.` : '',
+    duplicateMessageCount ? `${duplicateMessageCount} duplicate provider message${duplicateMessageCount === 1 ? '' : 's'} hidden.` : '',
+  ].filter(Boolean);
+
+  return <ConversationsInbox conversations={conversations} notices={notices} />;
 }
