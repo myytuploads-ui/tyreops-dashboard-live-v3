@@ -23,14 +23,47 @@ export function normalizeWhatsAppPhone(value: unknown) {
   return /^[1-9]\d{7,14}$/.test(normalized) ? normalized : null;
 }
 
+/** UK postcode prefix (UB5, B40, M, SK) or ALL. */
+const POSTCODE_PREFIX = /^[A-Z]{1,2}(?:\d[A-Z\d]?)?$/;
+
+/** Human city/area name: letters with optional spaces, hyphens, apostrophes; at least 2 letters. */
+const CITY_NAME = /^[A-Za-z][A-Za-z\s'-]{0,78}[A-Za-z]$|^[A-Za-z]{2}$/;
+
 export function normalizeCoverage(value: unknown) {
   if (!Array.isArray(value)) return null;
-  const entries = value.map((entry) => String(entry).trim().toUpperCase().replace(/\s+/g, '')).filter(Boolean);
-  if (!entries.length) return null;
-  if (entries.includes('ALL')) return entries.length === 1 ? ['ALL'] : null;
-  if (entries.some((entry) => !/^[A-Z]{1,2}(?:\d[A-Z\d]?)?$/.test(entry))) return null;
-  const unique = [...new Set(entries)];
-  return unique.length === entries.length ? unique : null;
+
+  const raw = value
+    .map((entry) => String(entry ?? '').trim().replace(/\s+/g, ' '))
+    .filter(Boolean);
+  if (!raw.length) return null;
+
+  const asAll = raw.map((entry) => entry.toUpperCase().replace(/\s+/g, ''));
+  if (asAll.includes('ALL')) {
+    return raw.length === 1 ? ['ALL'] : null;
+  }
+
+  const out: string[] = [];
+  const seen = new Set<string>();
+
+  for (const entry of raw) {
+    const postcodeToken = entry.toUpperCase().replace(/\s+/g, '');
+    let canonical: string;
+
+    if (POSTCODE_PREFIX.test(postcodeToken)) {
+      canonical = postcodeToken;
+    } else if (entry.length >= 2 && CITY_NAME.test(entry)) {
+      canonical = entry;
+    } else {
+      return null;
+    }
+
+    const key = canonical.toLowerCase();
+    if (seen.has(key)) return null;
+    seen.add(key);
+    out.push(canonical);
+  }
+
+  return out;
 }
 
 export function validateFitterFields(body: Record<string, unknown>, creating: boolean) {
@@ -56,7 +89,7 @@ export function validateFitterFields(body: Record<string, unknown>, creating: bo
   }
   if (creating || 'coverage_areas' in body) {
     const coverage = normalizeCoverage(body.coverage_areas);
-    if (!coverage) return { error: 'Enter unique postcode prefixes, or select covers everywhere.' } as const;
+    if (!coverage) return { error: 'Enter unique postcode prefixes or city names, or select covers everywhere.' } as const;
     result.coverage_areas = coverage;
   }
   if (creating || 'priority_level' in body) {
