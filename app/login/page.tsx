@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { FormEvent, useMemo, useState } from 'react';
 import Image from 'next/image';
@@ -71,24 +71,51 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="loginWrap" style={{position:'fixed', inset:0, zIndex:100}}>
+    <div className="loginWrap" style={{ position: 'fixed', inset: 0, zIndex: 100 }}>
+      <div className="loginHudGrid" aria-hidden />
       <div className="loginCard">
         <div className="loginBrandBlock">
-          <Image className="loginLogo" src="/brand/rescue-tyres-logo.png" alt="Rescue Tyres Mobile Services" width={168} height={164} priority />
+          <Image
+            className="loginLogo"
+            src="/brand/rescue-tyres-logo.png"
+            alt="Rescue Tyres Mobile Services"
+            width={220}
+            height={214}
+            priority
+          />
           <span className="eyebrow loginBrand">RESCUE TYRES</span>
+          <span className="loginBrandSub">Owner app · mobile tyre OS</span>
         </div>
-        <h1>A smoother<br/>day starts here.</h1>
-        <p className="loginLead">Your jobs. Your team. Everything in hand.</p>
+        <h1>Your day,<br />in one calm place.</h1>
+        <p className="loginLead">Jobs, fitters, money, and Needs You — graphite and Rescue red, ready when you are.</p>
         <form onSubmit={submit} className="loginForm">
           <label className="loginField">
             <span className="loginLabel">Email</span>
-            <input className="input" autoComplete="email" type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="you@example.com" required />
+            <input
+              className="input"
+              autoComplete="email"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="you@rescueservices.co.uk"
+              required
+            />
           </label>
           <label className="loginField">
             <span className="loginLabel">Password</span>
-            <input className="input" autoComplete="current-password" type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="" required />
+            <input
+              className="input"
+              autoComplete="current-password"
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder=""
+              required
+            />
           </label>
-          <button className="btn primary loginSubmit" type="submit" disabled={loading}>{loading ? 'Signing in…' : 'Sign in'}</button>
+          <button className="btn primary loginSubmit" type="submit" disabled={loading}>
+            {loading ? 'Signing in…' : 'Sign in'}
+          </button>
           <button className="loginForgot" type="button" onClick={() => void forgotPassword()} disabled={resetting || loading}>
             {resetting ? 'Sending reset…' : 'Forgot password?'}
           </button>
