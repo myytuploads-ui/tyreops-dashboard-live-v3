@@ -97,10 +97,10 @@ export default function PaymentResendActions({
             <a className="btn primary" href={waHref} target="_blank" rel="noreferrer">
               Chase on WhatsApp{amountLabel ? ` ${amountLabel}` : ''}
             </a>
-          ) : (
-            <Link className="btn primary" href={`/conversations?job=${jobId}`}>Message customer</Link>
-          )}
-          {waHref ? <Link className="atelierButton" href={`/conversations?job=${jobId}`}>Open inbox</Link> : null}
+          ) : null}
+          <Link className={waHref ? 'atelierButton' : 'btn primary'} href={`/conversations?job=${jobId}`}>
+            {waHref ? 'Open inbox' : 'Message in inbox'}
+          </Link>
           {webhookResendAvailable ? (
             <button type="button" className="atelierButton" disabled={busy} onClick={() => void resendWebhook()}>
               {busy ? 'Sending…' : 'Resend payment link (webhook)'}

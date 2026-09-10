@@ -7,6 +7,7 @@ import { needsYou as classifyNeedsYou } from '@/lib/dashboard/operations';
 import { isTestJob } from '@/lib/dashboard/filters';
 import { useAuthoritativePolling } from '@/lib/dashboard/use-authoritative-polling';
 import StatusBadge from '@/components/StatusBadge';
+import { groupJobsByPipelineStage, stageEnteredAt, formatStageAge, stagePrimaryCta } from '@/lib/dashboard/pipeline-stage';
 
 type Row = Record<string, any>;
 const when = (value: unknown) => value ? new Date(String(value)).toLocaleString('en-GB', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) : '—';
@@ -104,17 +105,21 @@ export default function JobsPage() {
   const primaryJobId = filtered.find((job) => needsYou(job) || isActionableStatus(String(job.status || '')))?.id;
 
   return <div className="atelierPage">
-    <header className="atelierHeading"><div><span className="eyebrow">YOUR OPERATIONS</span><h1>{needsOnly ? 'Needs you.' : 'Every job. One place.'}</h1><p>{needsOnly ? 'The decisions that keep your day moving.' : 'From the first message to the final fitting.'}</p></div><label className="compactCheck"><input type="checkbox" checked={showTests} onChange={e=>setShowTests(e.target.checked)}/> Test records</label></header>
+    <header className="atelierHeading"><div><span className="eyebrow">YOUR OPERATIONS</span><h1>{needsOnly ? 'Needs you.' : 'Every job. One place.'}</h1><p>{needsOnly ? 'Grouped by stage. Dwell and one CTA — bottlenecks first.' : 'From the first message to the final fitting.'}</p></div><label className="compactCheck"><input type="checkbox" checked={showTests} onChange={e=>setShowTests(e.target.checked)}/> Test records</label></header>
     <div className="atelierSearch"><input aria-label="Search jobs" value={query} onChange={e=>setQuery(e.target.value)} placeholder="Search postcode, customer or tyre size…"/><select aria-label="Filter status" value={status} onChange={e=>setStatus(e.target.value)}><option value="">Every status</option>{STATUSES.map(s=><option key={s} value={s}>{STATUS_LABELS[s]}</option>)}</select></div>
     <div className="atelierTabs"><button type="button" className={!needsOnly?'selected':''} onClick={()=>setNeedsOnly(false)}>All jobs <span>{visible.length}</span></button><button type="button" className={needsOnly?'selected':''} onClick={()=>setNeedsOnly(true)}>Needs you <span>{needsCount}</span></button></div>
     {loading && <div className="modernEmpty">Loading your jobs…</div>}{error && <div className="error">{error}</div>}
-    <div className="atelierJobs">{filtered.map(job=><Link className="atelierJob atelierJobLink" href={`/jobs/${job.id}`} key={job.id}>
+    {needsOnly ? <div className="atelierJobs atelierStageQueue">{groupJobsByPipelineStage(filtered).map(({stage, jobs}) => <section className="atelierStageGroup" key={stage.key}><div className="atelierStageGroupHead"><h3>{stage.label}</h3><span>{jobs.length}</span></div>{jobs.map((job, index) => {
+      const entered = stageEnteredAt(job, eventsByJob.get(String(job.id)) || []);
+      const cta = stagePrimaryCta(job);
+      return <Link className="atelierStageCard" href={`/jobs/${job.id}${cta.hrefSuffix || ''}`} key={job.id}><div className="meta"><span>{stage.label}</span><small>{formatStageAge(entered.at, entered.known)}</small></div><h3>{job.postcode || job.postcode_area || 'Location pending'}</h3><p>{job.tyre_size || 'Tyre details pending'}{job.tyre_quantity ? ` × ${job.tyre_quantity}` : ''} · {job.customer_name || 'Customer'}</p><span className={job.id===primaryJobId || index===0?'atelierButton primary':'atelierButton'}>{cta.label} <span>↗</span></span></Link>;
+    })}</section>)}</div> : <div className="atelierJobs">{filtered.map(job=><Link className="atelierJob atelierJobLink" href={`/jobs/${job.id}`} key={job.id}>
       <div className="atelierJobMeta"><StatusBadge status={job.status}/><span>{when(job.updated_at)}</span></div>
       <h2>{job.postcode || job.postcode_area || 'Location pending'}</h2>
       <p className="atelierTyre">{job.tyre_size || 'Tyre details pending'}{job.tyre_quantity ? ` × ${job.tyre_quantity}` : ''}</p>
       <div className="atelierCustomer"><span className="atelierAvatar">{String(job.customer_name || 'C').slice(0,1)}</span><div><strong>{job.customer_name || 'Customer'}</strong><span>{job.customer_phone || 'Conversation available'}</span></div></div>
       <footer><small>{job.public_job_id || 'Job'}</small><span className={job.id===primaryJobId?'atelierButton primary':'atelierButton'}>{jobCta(job.status)} <span>↗</span></span></footer>
-    </Link>)}</div>
+    </Link>)}</div>}
     {!loading && !filtered.length && <div className="atelierEmpty"><span>✓</span><h2>{needsOnly?'All caught up.':'Nothing here yet.'}</h2><p>{needsOnly?'Your next decision will appear here.':'New enquiries will appear here as they arrive.'}</p></div>}
   </div>;
 }

@@ -918,3 +918,30 @@
   background:rgba(237,48,71,.45);
 }
 
+.atelierNextStepActions{display:flex;flex-wrap:wrap;gap:10px;align-items:stretch;justify-content:flex-end;max-width:320px}
+.atelierNextStepActions .atelierButton,.atelierNextStepActions .atelierButton.primary{min-height:48px;flex:1 1 140px;text-align:center}
+.atelierStageSummary{margin:18px 0 8px;padding:16px 18px;border-radius:18px;background:#14181fcc;border:1px solid #ffffff0d}
+.atelierStageSummaryRow{display:flex;justify-content:space-between;gap:12px;align-items:baseline;margin:6px 0 4px}
+.atelierStageSummaryRow strong{font-size:22px;letter-spacing:-.03em}
+.atelierStageSummaryRow span{color:#f0a0ab;font-size:13px;font-weight:600}
+.atelierStageSummary p{margin:0 0 12px;color:#9aa3b0;font-size:12px;line-height:1.45}
+.atelierStageRail{list-style:none;display:flex;flex-wrap:wrap;gap:6px;margin:0;padding:0}
+.atelierStageRail li{font-size:11px;padding:6px 10px;border-radius:999px;background:#0f1318;color:#7f8794;border:1px solid #ffffff08}
+.atelierStageRail li.done{color:#b7c0cc;border-color:#ffffff14}
+.atelierStageRail li.now{color:#fff;background:#ed304722;border-color:#ed304755;font-weight:700}
+.atelierStageGroup{margin:18px 0 10px}
+.atelierStageGroupHead{display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin:0 0 10px}
+.atelierStageGroupHead h3{margin:0;font-size:14px;letter-spacing:.04em;text-transform:uppercase;color:#c5ccd6}
+.atelierStageGroupHead span{font-size:12px;color:#ed3047;font-weight:700}
+.atelierStageCard{display:block;padding:14px 16px;border-radius:16px;background:#11151bcc;border:1px solid #ffffff0d;color:inherit;margin-bottom:10px}
+.atelierStageCard .meta{display:flex;justify-content:space-between;gap:8px;font-size:12px;color:#a6a3ad;margin-bottom:6px}
+.atelierStageCard h3{margin:0 0 4px;font-size:20px;letter-spacing:-.03em}
+.atelierStageCard p{margin:0 0 12px;color:#a6a3ad;font-size:13px}
+.atelierStageCard .atelierButton{width:100%;min-height:48px;pointer-events:none}
+.coverageChips{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0 4px}
+.coverageChip{display:inline-flex;align-items:center;gap:6px;padding:8px 12px;border-radius:999px;background:#171b22;border:1px solid #ffffff14;color:#e8eaef;font-size:13px;font-weight:600}
+.coverageChip button{appearance:none;border:0;background:transparent;color:#f0a0ab;font-size:16px;line-height:1;padding:0 2px;cursor:pointer}
+.coverageChipInputRow{display:flex;gap:8px;align-items:stretch}
+.coverageChipInputRow input{flex:1;min-width:0}
+.coverageChipInputRow .btn{flex:0 0 auto;min-height:44px}
+@media(max-width:720px){.atelierNextStepActions{max-width:none;width:100%}.atelierNextStepActions .atelierButton{flex:1 1 calc(50% - 10px)}.atelierStageSummary{padding:14px}.atelierStageCard{padding:14px}}

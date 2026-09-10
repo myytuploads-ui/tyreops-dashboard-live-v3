@@ -7,29 +7,12 @@ import { ACTIVE_JOB_STATUSES, expectedMargin, isToday, isThisMonth, isThisWeek, 
 import { isTestJob } from '@/lib/dashboard/filters';
 import { useAuthoritativePolling } from '@/lib/dashboard/use-authoritative-polling';
 import StatusBadge from '@/components/StatusBadge';
+import { groupJobsByPipelineStage, stageEnteredAt, formatStageAge, stagePrimaryCta } from '@/lib/dashboard/pipeline-stage';
 
 type Row = Record<string, any>;
 const money = (value: number | null) => value === null ? '—' : new Intl.NumberFormat('en-GB', { style: 'currency', currency: 'GBP', maximumFractionDigits: 0 }).format(value);
 const timeOnly = (value: unknown) => value ? new Date(String(value)).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }) : '—';
-const age = (value: unknown) => {
-  const then = Date.parse(String(value || ''));
-  if (!Number.isFinite(then)) return 'Waiting';
-  const minutes = Math.max(0, Math.round((Date.now() - then) / 60000));
-  return minutes < 60 ? `${minutes}m` : minutes < 1440 ? `${Math.floor(minutes / 60)}h ${minutes % 60}m` : `${Math.floor(minutes / 1440)}d`;
-};
 
-function actionCopy(job: Row) {
-  const status = String(job.status || '').toLowerCase();
-  if (status === 'awaiting_owner_price') return ['Price needed', 'Set price'];
-  if (status === 'awaiting_owner_first_refusal') return ['Your decision', 'Decide now'];
-  if (status === 'awaiting_group_dispatch') return ['Group dispatch', 'Copy & assign'];
-  if (['offers_received', 'awaiting_owner_assignment'].includes(status)) return ['Fitter decision', 'Assign fitter'];
-  if (status === 'deposit_paid') return ['Ready to assign', 'Choose a fitter'];
-  if (status === 'awaiting_payment') return ['Waiting on payment', 'Chase payment'];
-  if (status === 'payment_link_expired') return ['Payment expired', 'Chase payment'];
-  if (status === 'manual_review') return ['Manual review', 'Open job'];
-  return ['Needs attention', 'Open job'];
-}
 
 export default function HomePage() {
   const supabase = useMemo(() => createClient(), []);
@@ -114,8 +97,19 @@ export default function HomePage() {
       </div>
       <Link href="/money" className="atelierEarningsLink">Money ↗</Link>
     </section>
-    <section className={`atelierPriority${actionable.length?' hasAttention':' isClear'}`}><header><div><span className="eyebrow">NEEDS YOU</span><h2>{actionable.length ? (actionable.length===1 ? '1 decision waiting.' : `${actionable.length} decisions waiting.`) : 'Nothing needs you.'}</h2>{actionable.length? <p>Tap the next action. Keep the day moving.</p> : <p className="atelierClearCopy">You're clear. New owner decisions land here first.</p>}</div>{actionable.length? <Link href="/jobs?view=needs-you" className="atelierButton atelierQueueLink">Full queue ↗</Link> : null}</header>
-    {actionable.length>0 && <div className="atelierUrgent">{actionable.slice(0,2).map((job, index)=>{const [label,action]=actionCopy(job);return <Link className="atelierUrgentCard" key={job.id} href={`/jobs/${job.id}`}><div className="atelierJobMeta"><span className="atelierStatusLine">{label}</span><small>{age(job.updated_at || job.created_at)}</small></div><h3>{job.postcode || job.postcode_area || 'Location pending'}</h3><p>{job.tyre_size || 'Tyre details pending'}{job.tyre_quantity?` × ${job.tyre_quantity}`:''}</p><span className={index===0?'atelierButton primary':'atelierButton'}>{action} ↗</span></Link>})}</div>}
+    <section className={`atelierPriority${actionable.length?' hasAttention':' isClear'}`}><header><div><span className="eyebrow">NEEDS YOU</span><h2>{actionable.length ? (actionable.length===1 ? '1 decision waiting.' : `${actionable.length} decisions waiting.`) : 'Nothing needs you.'}</h2>{actionable.length? <p>Stage bottlenecks first. One clear next step each.</p> : <p className="atelierClearCopy">You're clear. New owner decisions land here first.</p>}</div>{actionable.length? <Link href="/jobs?view=needs-you" className="atelierButton atelierQueueLink">Full queue ↗</Link> : null}</header>
+    {actionable.length>0 && <div className="atelierUrgent atelierStageQueue">{groupJobsByPipelineStage(actionable).flatMap(({stage, jobs}) => {
+      const shown = jobs.slice(0, stage.key === 'deposit' || stage.key === 'quote' || stage.key === 'fitter' ? 3 : 2);
+      return [
+        <div className="atelierStageGroupHead" key={`h-${stage.key}`}><h3>{stage.label}</h3><span>{jobs.length}</span></div>,
+        ...shown.map((job, index) => {
+          const entered = stageEnteredAt(job, eventsByJob.get(String(job.id)) || []);
+          const cta = stagePrimaryCta(job);
+          const href = `/jobs/${job.id}${cta.hrefSuffix || ''}`;
+          return <Link className="atelierStageCard" key={job.id} href={href}><div className="meta"><span>{stage.label}</span><small>{formatStageAge(entered.at, entered.known)}</small></div><h3>{job.postcode || job.postcode_area || 'Location pending'}</h3><p>{job.tyre_size || 'Tyre details pending'}{job.tyre_quantity?` × ${job.tyre_quantity}`:''}</p><span className={index===0 && stage.index<=2?'atelierButton primary':'atelierButton'}>{cta.label} ↗</span></Link>;
+        })
+      ];
+    })}</div>}
     </section>
     <section className="atelierToday"><span className="eyebrow">TODAY AT A GLANCE</span><div className="atelierMoneyRow"><div><span>Confirmed payments</span><strong>{money(paidRevenueToday)}</strong></div><div><span>Active jobs</span><strong>{active.length}</strong></div><div><span>Completed today</span><strong>{completedToday.length}</strong></div>{marginToday!==null && <div><span>Gross margin</span><strong>{money(marginToday)}</strong></div>}</div></section>
     <div className="atelierHomeColumns"><section><div className="atelierSectionHeading"><h2>Active now</h2><Link href="/jobs">All jobs ↗</Link></div>{active.length?active.slice(0,6).map(job=><Link className="atelierActiveRow" href={`/jobs/${job.id}`} key={job.id}><span className="atelierWheel">◎</span><div><strong>{job.postcode || job.postcode_area || 'Location pending'}</strong><p>{job.tyre_size || 'Tyre details pending'}{job.tyre_quantity?` × ${job.tyre_quantity}`:''}</p></div><StatusBadge status={job.status}/><span>↗</span></Link>):<p className="atelierQuiet">No active jobs right now.</p>}</section>

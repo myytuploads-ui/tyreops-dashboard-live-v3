@@ -11,6 +11,7 @@ import ChaseFitterBalanceButton from './ChaseFitterBalanceButton';
 import FitterSentConfirm from './FitterSentConfirm';
 import ConversationControls from './ConversationControls';
 import { fitterSentState, fitterToSendAmount, owedNowAmount } from '@/lib/dashboard/settlement-display';
+import { pipelineStageForJob, stageEnteredAt, formatStageAge, PIPELINE_STAGES } from '@/lib/dashboard/pipeline-stage';
 
 type Row = Record<string, any>;
 
@@ -106,7 +107,7 @@ function nextStepCopy(status: unknown, ownerNeeded: boolean, opts: { hasSuggeste
     cta: 'Open inbox', href: 'INBOX', panel: false as const, assist: null, blocked: false,
   };
   if (['assigned', 'fitter_on_route', 'arrived', 'in_progress'].includes(s)) return {
-    title: 'Fitter is progressing', body: 'Monitor here. Intervene only if needed.',
+    title: 'Fitter is progressing', body: 'Monitor here. Call customer or fitter if you need to intervene.',
     cta: opts.hasPhone ? 'Call customer' : 'Open inbox', href: opts.hasPhone ? 'TEL' : 'INBOX', panel: false as const, assist: null, blocked: false,
   };
   if (s === 'completed') return {
@@ -216,6 +217,12 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
       ? `https://wa.me/${waDigits}?text=${encodeURIComponent(waPaymentText)}`
       : `https://wa.me/${waDigits}`)
     : '';
+  const fitterPhoneRaw = String(assigned?.whatsapp_phone || assigned?.phone || '').trim();
+  const fitterTel = fitterPhoneRaw ? `tel:${fitterPhoneRaw.replace(/[^+0-9]/g, '')}` : '';
+  const fitterWaDigits = fitterPhoneRaw.replace(/\D/g, '');
+  const fitterWa = fitterWaDigits ? `https://wa.me/${fitterWaDigits}` : '';
+  const isProgressing = ['assigned', 'fitter_on_route', 'arrived', 'in_progress', 'on_route'].includes(jobStatus);
+
   const maps = (job.postcode || job.postcode_area) ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(job.postcode || job.postcode_area)}` : '';
   const previewToSend = fitterToSendAmount(settlement, job);
   const needsRemittance = String(job.status || '').toLowerCase() === 'completed' && previewToSend !== null && previewToSend > 0;
@@ -254,18 +261,44 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
           {next.assist ? <p className="atelierAssistHint">{next.assist}</p> : null}
           {next.blocked ? <p className="atelierBackendGap">Backend gap on this step — use Inbox / WhatsApp / Call so you are not stuck.</p> : null}
         </div>
-        {ctaHref ? (
-          next.href === 'INBOX' ? (
-            <Link className={panelOwnsPrimary || next.blocked ? 'atelierButton' : 'atelierButton primary'} href={ctaHref}>{next.cta} ↗</Link>
-          ) : next.href.startsWith('#') ? (
-            <a className={panelOwnsPrimary || next.blocked ? 'atelierButton' : 'atelierButton primary'} href={ctaHref}>{next.cta}</a>
-          ) : (
-            <a className="atelierButton primary" href={ctaHref} target={next.href === 'WHATSAPP' ? '_blank' : undefined} rel={next.href === 'WHATSAPP' ? 'noreferrer' : undefined}>{next.cta} ↗</a>
-          )
-        ) : null}
+        <div className="atelierNextStepActions">
+          {ctaHref ? (
+            next.href === 'INBOX' ? (
+              <Link className={panelOwnsPrimary || next.blocked ? 'atelierButton' : 'atelierButton primary'} href={ctaHref}>{next.cta} ↗</Link>
+            ) : next.href.startsWith('#') ? (
+              <a className={panelOwnsPrimary || next.blocked ? 'atelierButton' : 'atelierButton primary'} href={ctaHref}>{next.cta}</a>
+            ) : (
+              <a className="atelierButton primary" href={ctaHref} target={next.href === 'WHATSAPP' ? '_blank' : undefined} rel={next.href === 'WHATSAPP' ? 'noreferrer' : undefined}>{next.cta} ↗</a>
+            )
+          ) : null}
+          {isProgressing && tel && next.href !== 'TEL' ? <a className="atelierButton" href={tel}>Call customer</a> : null}
+          {isProgressing && fitterTel ? <a className="atelierButton" href={fitterTel}>Call fitter</a> : null}
+          {isProgressing && fitterWa ? <a className="atelierButton" href={fitterWa} target="_blank" rel="noreferrer">WhatsApp fitter</a> : null}
+        </div>
       </section>
       <div className="atelierProgress atelierProgressSlim" aria-hidden="true">{['Enquiry','Quote','Deposit','Fitter','On route','Fitting','Done'].map((label,i)=><div className={i<=stage?'reached':''} key={label}><i>{i<stage?'✓':i+1}</i><span>{label}</span></div>)}</div>
     </header>
+
+
+    {(() => {
+      const pipe = pipelineStageForJob(job);
+      const entered = stageEnteredAt(job, events);
+      const ageLabel = formatStageAge(entered.at, entered.known);
+      const whenLabel = entered.at
+        ? new Date(String(entered.at)).toLocaleString('en-GB', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })
+        : null;
+      return <section className="atelierStageSummary" aria-label="Stage summary">
+        <span className="eyebrow">STAGE</span>
+        <div className="atelierStageSummaryRow">
+          <strong>{pipe.label}</strong>
+          <span>{ageLabel}</span>
+        </div>
+        <p>{entered.known && whenLabel ? `Entered ${whenLabel}` : entered.at && whenLabel ? `Approx from ${whenLabel}` : 'Stage start time unknown — no matching timestamp on file.'}</p>
+        <ol className="atelierStageRail">
+          {PIPELINE_STAGES.map((s) => <li key={s.key} className={s.index < pipe.index ? 'done' : s.index === pipe.index ? 'now' : ''}>{s.label}</li>)}
+        </ol>
+      </section>;
+    })()}
 
     {(paymentExpired || jobStatus === 'awaiting_payment') ? <PaymentResendActions jobId={job.id} mode={paymentResendMode} amountLabel={paymentAmountLabel} customerPhone={job.customer_phone ? String(job.customer_phone) : undefined} publicJobId={job.public_job_id ? String(job.public_job_id) : undefined} webhookResendAvailable={paymentResendConfigured} /> : null}
     {job.status === 'awaiting_group_dispatch' ? <GroupDispatchCard jobId={job.id} tyreSize={job.tyre_size || ''} quantity={job.tyre_quantity} area={job.postcode || job.postcode_area || ''} /> : null}
