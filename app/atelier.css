@@ -770,3 +770,13 @@
   .atelierAnalyticsCard{padding:20px 18px;border-radius:18px}
   .atelierAnalyticsTimelineCard{padding:18px 16px 6px}
 }
+/* Payment resend owner panel */
+.paymentResendPanel{border-color:#ed304744}
+.paymentResendActions{display:flex;flex-wrap:wrap;gap:12px;align-items:stretch;margin-top:8px}
+.paymentResendActions .btn.primary{flex:1 1 220px}
+.paymentResendActions .atelierButton{flex:0 1 auto}
+.paymentResendHint{background:#2a2420;border:1px solid #c9a22755;color:#e6d3a0;padding:12px 14px;border-radius:12px;font-size:13px;line-height:1.5;margin-bottom:12px}
+.paymentRowActions{display:flex;flex-direction:column;align-items:flex-end;gap:8px}
+.paymentRowResend{min-height:36px!important;padding:8px 12px!important;font-size:11px}
+.paymentResendUnderList{margin-top:16px;padding-top:14px;border-top:1px solid #ffffff0d}
+.atelierProblem a{color:#ed3047;text-decoration:underline;text-underline-offset:2px}

@@ -6,6 +6,7 @@ import { calculateQuote } from '@/lib/pricing/quote';
 import { createAdminClient } from '@/lib/supabase/admin';
 import GroupDispatchCard from './GroupDispatchCard';
 import ManagerActions from './ManagerActions';
+import PaymentResendActions from './PaymentResendActions';
 import ConversationControls from './ConversationControls';
 import { fitterSentState, fitterToSendAmount, owedNowAmount } from '@/lib/dashboard/settlement-display';
 
@@ -65,7 +66,7 @@ function compactEvents(events: Row[]) {
   return rows;
 }
 
-function nextStepCopy(status: unknown, ownerNeeded: boolean, opts: { hasSuggested?: boolean; firstRefusalReady?: boolean; assignmentReady?: boolean; hasPhone?: boolean } = {}) {
+function nextStepCopy(status: unknown, ownerNeeded: boolean, opts: { hasSuggested?: boolean; firstRefusalReady?: boolean; assignmentReady?: boolean; hasPhone?: boolean; paymentExpired?: boolean } = {}) {
   const s = String(status || '').toLowerCase();
   if (s === 'awaiting_owner_price') return {
     title: 'Set price',
@@ -86,13 +87,17 @@ function nextStepCopy(status: unknown, ownerNeeded: boolean, opts: { hasSuggeste
     body: 'Assign someone now so the customer gets moving.',
     cta: 'Assign fitter', href: '#owner-action', panel: true as const, assist: null, blocked: false,
   };
+  if (s === 'awaiting_payment' && opts.paymentExpired) return {
+    title: 'Payment expired', body: 'Create a fresh link and send it to the customer.',
+    cta: 'Resend payment link', href: '#payment-resend', panel: true as const, assist: null, blocked: false,
+  };
   if (s === 'awaiting_payment') return {
     title: 'Waiting on payment', body: 'Customer has the link. Chase if they stall.',
     cta: opts.hasPhone ? 'Chase on WhatsApp' : 'Open inbox', href: opts.hasPhone ? 'WHATSAPP' : 'INBOX', panel: false as const, assist: null, blocked: false,
   };
   if (s === 'payment_link_expired') return {
-    title: 'Payment expired', body: 'Recover with the customer — no silent resend from here.',
-    cta: 'Open inbox', href: 'INBOX', panel: false as const, assist: null, blocked: false,
+    title: 'Payment expired', body: 'Create a fresh link and send it to the customer.',
+    cta: 'Resend payment link', href: '#payment-resend', panel: true as const, assist: null, blocked: false,
   };
   if (s === 'manual_review') return {
     title: 'Needs a human look', body: 'Open the conversation or assign a fitter if that unblocks it.',
@@ -174,6 +179,26 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
     }
   }
 
+  const latestPayment = payments[0] || null;
+  const latestPaymentStatus = String(latestPayment?.status || '').toLowerCase();
+  const depositStatus = String(job.deposit_status || '').toLowerCase();
+  const jobStatus = String(job.status || '').toLowerCase();
+  const paymentExpired =
+    jobStatus === 'payment_link_expired' ||
+    ['expired', 'failed', 'cancelled'].includes(latestPaymentStatus) ||
+    (jobStatus === 'awaiting_payment' && ['expired', 'failed'].includes(depositStatus));
+  const paymentResendMode: 'expired' | 'awaiting' =
+    jobStatus === 'payment_link_expired' ||
+    ['expired', 'failed', 'cancelled'].includes(latestPaymentStatus) ||
+    ['expired', 'failed'].includes(depositStatus)
+      ? 'expired'
+      : 'awaiting';
+  const paymentAmountLabel = (() => {
+    const amount = validMoney(latestPayment?.amount ?? job.deposit_amount);
+    return amount === null
+      ? undefined
+      : new Intl.NumberFormat('en-GB', { style: 'currency', currency: 'GBP', maximumFractionDigits: 0 }).format(amount);
+  })();
   const firstRefusalReady = Boolean(process.env.TYREOPS_FIRST_REFUSAL_URL?.trim());
   const assignmentReady = Boolean(process.env.TYREOPS_FITTER_ASSIGNMENT_URL?.trim());
   const tel = job.customer_phone ? `tel:${String(job.customer_phone).replace(/[^+0-9]/g, '')}` : '';
@@ -184,6 +209,7 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
     firstRefusalReady,
     assignmentReady,
     hasPhone: Boolean(tel || wa),
+    paymentExpired,
   });
   const ctaHref = next.href === 'INBOX' ? `/conversations?job=${job.id}` : next.href === 'WHATSAPP' ? wa : next.href === 'TEL' ? tel : next.href;
   const stage = slimStage(job.status, job);
@@ -224,6 +250,7 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
       <div className="atelierProgress atelierProgressSlim" aria-hidden="true">{['Enquiry','Quote','Deposit','Fitter','On route','Fitting','Done'].map((label,i)=><div className={i<=stage?'reached':''} key={label}><i>{i<stage?'✓':i+1}</i><span>{label}</span></div>)}</div>
     </header>
 
+    {paymentExpired ? <PaymentResendActions jobId={job.id} mode={paymentResendMode} amountLabel={paymentAmountLabel} /> : null}
     <ManagerActions job={job as any} offers={offers} fitters={fitters} depositRules={depositRules} firstRefusalReady={firstRefusalReady} assignmentReady={assignmentReady} suggestedQuote={suggestedQuote as any} />
     {job.status === 'awaiting_group_dispatch' ? <GroupDispatchCard jobId={job.id} tyreSize={job.tyre_size || ''} quantity={job.tyre_quantity} area={job.postcode || job.postcode_area || ''} /> : null}
 
@@ -268,13 +295,16 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
         <p>{job.tyre_quantity ? `${job.tyre_quantity} tyres` : 'Quantity pending'}{job.requested_time ? ` · ${job.requested_time}` : ''}</p>
         {job.vehicle_registration && <p>{job.vehicle_registration}</p>}
         {assigned && <p>Fitter · {assigned.full_name}</p>}
-        {problems.length > 0 && <p className="atelierProblem">{problems[0]}</p>}
+        {paymentExpired ? <p className="atelierProblem">Resend the payment link below · <a href="#payment-resend">Open resend</a></p> : problems.length > 0 ? <p className="atelierProblem">{problems[0]}</p> : null}
       </section>
     </div>
 
     {(offers.length > 0 || payments.length > 0) && <div className="atelierDetailGrid">
       {offers.length > 0 && <section className="atelierSurface"><span className="eyebrow">FITTER OFFERS</span>{offers.map((offer: Row) => <div className="atelierActiveRow" key={offer.id}><div><strong>{fitterMap[offer.fitter_id]?.full_name || 'Fitter'}</strong>{offer.eta_minutes != null && <p>{offer.eta_minutes} min ETA</p>}</div>{offer.quoted_cost != null && <strong>{money(offer.quoted_cost)}</strong>}</div>)}</section>}
-      {payments.length > 0 && <section className="atelierSurface"><span className="eyebrow">PAYMENTS</span>{payments.map((payment: Row) => <div className="atelierActiveRow" key={payment.id}><div><strong>{String(payment.status || 'Payment').replaceAll('_', ' ')}</strong><p>{when(payment.created_at)}</p></div><strong>{money(payment.amount)}</strong></div>)}</section>}
+      {payments.length > 0 && <section className="atelierSurface"><span className="eyebrow">PAYMENTS</span>{payments.map((payment: Row) => {
+        const bad = ['expired', 'failed', 'cancelled'].includes(String(payment.status || '').toLowerCase());
+        return <div className="atelierActiveRow" key={payment.id}><div><strong>{String(payment.status || 'Payment').replaceAll('_', ' ')}</strong><p>{when(payment.created_at)}</p></div><div className="paymentRowActions"><strong>{money(payment.amount)}</strong>{bad ? <a className="atelierButton primary paymentRowResend" href="#payment-resend">Resend</a> : null}</div></div>;
+      })}{paymentExpired ? <div className="paymentResendUnderList"><a className="atelierButton primary" href="#payment-resend">Resend payment link</a></div> : null}</section>}
     </div>}
 
     {timeline.length > 0 && <details className="atelierDiagnostics"><summary>Activity timeline · {timeline.length} updates</summary>{timeline.map((event: Row) => <div className="atelierActivity" key={event.id}><i /><div><strong>{readableEvent(event.event_type)}</strong><p>{when(event.latestAt || event.created_at)}{event.repeatCount > 1 ? ` · ${event.repeatCount} updates` : ''}</p></div></div>)}</details>}

@@ -83,7 +83,7 @@ export default function ManagerActions({ job, offers, fitters, depositRules, fir
   const isFirstRefusal = job.status === 'awaiting_owner_first_refusal';
   const isAssignment = job.status === 'awaiting_owner_assignment';
   const manualAssignmentEligible = ['deposit_paid', 'awaiting_group_dispatch', 'dispatching_preferred', 'dispatching_general', 'awaiting_owner_assignment', 'manual_review', 'awaiting_owner_first_refusal'].includes(job.status);
-  const needsFitterSourcing = manualAssignmentEligible || job.status === 'payment_link_expired';
+  const needsFitterSourcing = manualAssignmentEligible;
   if (!isPricing && !isFirstRefusal && !isAssignment && !needsFitterSourcing) return null;
   const activeFitters = fitters.filter((fitter) => fitter.active !== false);
   const selectedFitter = activeFitters.find((fitter) => String(fitter.id) === manualFitterId);
