@@ -5,10 +5,21 @@ import type { Metadata, Viewport } from 'next';
 import { Suspense } from 'react';
 
 export const metadata: Metadata = {
-  title: 'Rescue Tyres · TyreOps',
-  description: 'Mobile tyre operations, from enquiry to completion.',
-  applicationName: 'TyreOps',
-  appleWebApp: { capable: true, title: 'TyreOps', statusBarStyle: 'black-translucent' },
+  title: 'Rescue Tyres · Owner OS',
+  description: 'Rescue Tyres owner app — mobile tyre operations from enquiry to completion.',
+  applicationName: 'Rescue Tyres',
+  appleWebApp: { capable: true, title: 'Rescue Tyres', statusBarStyle: 'black-translucent' },
+  openGraph: {
+    title: 'Rescue Tyres · Owner OS',
+    description: 'Owner command for mobile tyre jobs, money, and Needs You — graphite pulse.',
+    siteName: 'Rescue Tyres',
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Rescue Tyres · Owner OS',
+    description: 'Owner command for mobile tyre jobs, money, and Needs You.',
+  },
 };
 
 export const viewport: Viewport = {
