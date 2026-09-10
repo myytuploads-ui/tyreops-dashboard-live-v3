@@ -8,6 +8,7 @@ import GroupDispatchCard from './GroupDispatchCard';
 import ManagerActions from './ManagerActions';
 import PaymentResendActions from './PaymentResendActions';
 import ChaseFitterBalanceButton from './ChaseFitterBalanceButton';
+import FitterSentConfirm from './FitterSentConfirm';
 import ConversationControls from './ConversationControls';
 import { fitterSentState, fitterToSendAmount, owedNowAmount } from '@/lib/dashboard/settlement-display';
 
@@ -67,7 +68,7 @@ function compactEvents(events: Row[]) {
   return rows;
 }
 
-function nextStepCopy(status: unknown, ownerNeeded: boolean, opts: { hasSuggested?: boolean; firstRefusalReady?: boolean; assignmentReady?: boolean; hasPhone?: boolean; paymentExpired?: boolean } = {}) {
+function nextStepCopy(status: unknown, ownerNeeded: boolean, opts: { hasSuggested?: boolean; firstRefusalReady?: boolean; assignmentReady?: boolean; hasPhone?: boolean; paymentExpired?: boolean; needsRemittance?: boolean } = {}) {
   const s = String(status || '').toLowerCase();
   if (s === 'awaiting_owner_price') return {
     title: 'Set price',
@@ -76,8 +77,8 @@ function nextStepCopy(status: unknown, ownerNeeded: boolean, opts: { hasSuggeste
   };
   if (s === 'awaiting_owner_first_refusal') return {
     title: 'Your call on this job',
-    body: opts.firstRefusalReady ? 'Take it, send it on, or snooze — one clear decision.' : 'Decision API is not wired in this environment yet.',
-    cta: opts.firstRefusalReady ? 'Decide now' : 'Decision unavailable', href: '#owner-action', panel: true as const, assist: null, blocked: !opts.firstRefusalReady,
+    body: opts.firstRefusalReady ? 'Take it, send it on, or snooze — one clear decision.' : 'Decision API is not wired here yet — use Inbox / WhatsApp / Call while that is fixed.',
+    cta: opts.firstRefusalReady ? 'Decide now' : 'Open inbox', href: opts.firstRefusalReady ? '#owner-action' : 'INBOX', panel: true as const, assist: null, blocked: !opts.firstRefusalReady,
   };
   if (s === 'awaiting_group_dispatch') return {
     title: 'Find a group fitter', body: 'Copy the group message, then assign when an offer lands.',
@@ -89,16 +90,16 @@ function nextStepCopy(status: unknown, ownerNeeded: boolean, opts: { hasSuggeste
     cta: 'Assign fitter', href: '#owner-action', panel: true as const, assist: null, blocked: false,
   };
   if (s === 'awaiting_payment' && opts.paymentExpired) return {
-    title: 'Payment expired', body: 'Create a fresh link and send it to the customer.',
-    cta: 'Resend payment link', href: '#payment-resend', panel: true as const, assist: null, blocked: false,
+    title: 'Payment expired', body: 'Chase the customer on WhatsApp or Inbox — do not wait on a webhook.',
+    cta: opts.hasPhone ? 'Chase on WhatsApp' : 'Message customer', href: opts.hasPhone ? 'WHATSAPP' : 'INBOX', panel: false as const, assist: null, blocked: false,
   };
   if (s === 'awaiting_payment') return {
     title: 'Waiting on payment', body: 'Customer has the link. Chase if they stall.',
     cta: opts.hasPhone ? 'Chase on WhatsApp' : 'Open inbox', href: opts.hasPhone ? 'WHATSAPP' : 'INBOX', panel: false as const, assist: null, blocked: false,
   };
   if (s === 'payment_link_expired') return {
-    title: 'Payment expired', body: 'Create a fresh link and send it to the customer.',
-    cta: 'Resend payment link', href: '#payment-resend', panel: true as const, assist: null, blocked: false,
+    title: 'Payment expired', body: 'Chase the customer on WhatsApp or Inbox — do not wait on a webhook.',
+    cta: opts.hasPhone ? 'Chase on WhatsApp' : 'Message customer', href: opts.hasPhone ? 'WHATSAPP' : 'INBOX', panel: false as const, assist: null, blocked: false,
   };
   if (s === 'manual_review') return {
     title: 'Needs a human look', body: 'Open the conversation or assign a fitter if that unblocks it.',
@@ -109,8 +110,10 @@ function nextStepCopy(status: unknown, ownerNeeded: boolean, opts: { hasSuggeste
     cta: opts.hasPhone ? 'Call customer' : 'Open inbox', href: opts.hasPhone ? 'TEL' : 'INBOX', panel: false as const, assist: null, blocked: false,
   };
   if (s === 'completed') return {
-    title: 'Job complete', body: 'Check what the fitter still owes — settle from Money if needed.',
-    cta: 'Review settlement', href: '#settlement', panel: false as const, assist: null, blocked: false,
+    title: 'Job complete',
+    body: opts.needsRemittance ? 'Confirm if the fitter sent what they owe.' : 'Review settlement — confirm remittance if anything was owed.',
+    cta: opts.needsRemittance ? 'Confirm remittance' : 'Review settlement',
+    href: '#settlement', panel: false as const, assist: null, blocked: false,
   };
   if (ownerNeeded) return {
     title: 'Needs your attention', body: 'Take the clearest next step below.',
@@ -118,7 +121,6 @@ function nextStepCopy(status: unknown, ownerNeeded: boolean, opts: { hasSuggeste
   };
   return { title: 'On track', body: 'Nothing blocked. Details stay below.', cta: 'Open inbox', href: 'INBOX', panel: false as const, assist: null, blocked: false };
 }
-
 function slimStage(status: unknown, job: Row) {
   const s = String(status || '').toLowerCase();
   if (s === 'completed') return 6;
@@ -203,14 +205,28 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
   const firstRefusalReady = Boolean(process.env.TYREOPS_FIRST_REFUSAL_URL?.trim());
   const assignmentReady = Boolean(process.env.TYREOPS_FITTER_ASSIGNMENT_URL?.trim());
   const tel = job.customer_phone ? `tel:${String(job.customer_phone).replace(/[^+0-9]/g, '')}` : '';
-  const wa = job.customer_phone ? `https://wa.me/${String(job.customer_phone).replace(/\D/g, '')}` : '';
+  const waDigits = job.customer_phone ? String(job.customer_phone).replace(/\D/g, '') : '';
+  const waPaymentText = (() => {
+    const jobLabel = String(job.public_job_id || job.id).slice(0, 24);
+    const amountBit = paymentAmountLabel ? ` (${paymentAmountLabel} deposit)` : '';
+    return `Hi — job ${jobLabel}. Just following up on the Rescue Tyres payment${amountBit}. Reply here if you need the link again — happy to resend. Thanks.`;
+  })();
+  const wa = waDigits
+    ? (paymentExpired
+      ? `https://wa.me/${waDigits}?text=${encodeURIComponent(waPaymentText)}`
+      : `https://wa.me/${waDigits}`)
+    : '';
   const maps = (job.postcode || job.postcode_area) ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(job.postcode || job.postcode_area)}` : '';
+  const previewToSend = fitterToSendAmount(settlement, job);
+  const needsRemittance = String(job.status || '').toLowerCase() === 'completed' && previewToSend !== null && previewToSend > 0;
+  const paymentResendConfigured = Boolean(process.env.TYREOPS_PAYMENT_RESEND_URL?.trim());
   const next = nextStepCopy(job.status, ownerNeeded, {
     hasSuggested: Boolean(suggestedQuote && (suggestedQuote as any).quote_status === 'priced'),
     firstRefusalReady,
     assignmentReady,
     hasPhone: Boolean(tel || wa),
     paymentExpired,
+    needsRemittance,
   });
   const ctaHref = next.href === 'INBOX' ? `/conversations?job=${job.id}` : next.href === 'WHATSAPP' ? wa : next.href === 'TEL' ? tel : next.href;
   const stage = slimStage(job.status, job);
@@ -236,7 +252,7 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
           <h2>{next.title}</h2>
           <p>{next.body}</p>
           {next.assist ? <p className="atelierAssistHint">{next.assist}</p> : null}
-          {next.blocked ? <p className="atelierBackendGap">Backend gap: this step has no safe API in this environment.</p> : null}
+          {next.blocked ? <p className="atelierBackendGap">Backend gap on this step — use Inbox / WhatsApp / Call so you are not stuck.</p> : null}
         </div>
         {ctaHref ? (
           next.href === 'INBOX' ? (
@@ -251,7 +267,7 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
       <div className="atelierProgress atelierProgressSlim" aria-hidden="true">{['Enquiry','Quote','Deposit','Fitter','On route','Fitting','Done'].map((label,i)=><div className={i<=stage?'reached':''} key={label}><i>{i<stage?'✓':i+1}</i><span>{label}</span></div>)}</div>
     </header>
 
-    {paymentExpired ? <PaymentResendActions jobId={job.id} mode={paymentResendMode} amountLabel={paymentAmountLabel} /> : null}
+    {paymentExpired ? <PaymentResendActions jobId={job.id} mode={paymentResendMode} amountLabel={paymentAmountLabel} customerPhone={job.customer_phone ? String(job.customer_phone) : undefined} publicJobId={job.public_job_id ? String(job.public_job_id) : undefined} webhookResendAvailable={paymentResendConfigured} /> : null}
     <ManagerActions job={job as any} offers={offers} fitters={fitters} depositRules={depositRules} firstRefusalReady={firstRefusalReady} assignmentReady={assignmentReady} suggestedQuote={suggestedQuote as any} />
     {job.status === 'awaiting_group_dispatch' ? <GroupDispatchCard jobId={job.id} tyreSize={job.tyre_size || ''} quantity={job.tyre_quantity} area={job.postcode || job.postcode_area || ''} /> : null}
 
@@ -261,17 +277,21 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
       const sent = fitterSentState(settlement);
       const fitterPhone = String(assigned?.whatsapp_phone || assigned?.phone || '').trim();
       const canChase = toSend !== null && toSend > 0 && Boolean(fitterPhone);
-      return <section className="atelierSettlementCard" id="settlement" aria-label="Settlement">
+      return <section className="atelierSettlementCard atelierSettlementCardEmphatic" id="settlement" aria-label="Settlement">
         <div className="atelierSettlementOwed">
           <span className="eyebrow">OWED RIGHT NOW</span>
           <strong>{owed === null ? '—' : money(owed)}</strong>
           <p>{toSend !== null && toSend > 0 ? `Fitter to send ${money(toSend)}` : sent.label === 'Yes' ? 'Nothing outstanding from the fitter.' : settlement ? 'Settlement on file — amount unclear.' : 'No settlement record yet.'}</p>
-          {canChase ? <ChaseFitterBalanceButton jobId={job.id} amountLabel={money(toSend)} /> : null}
+          {canChase ? <ChaseFitterBalanceButton jobId={job.id} amountLabel={money(toSend)} amountGbp={toSend} fitterPhone={fitterPhone} publicJobId={job.public_job_id ? String(job.public_job_id) : undefined} /> : null}
+          {!canChase && toSend !== null && toSend > 0 ? <p className="atelierSettlementHint">No fitter phone on file — add one on the fitter record to chase on WhatsApp.</p> : null}
         </div>
         <div className="atelierSettlementSent">
-          <span className="eyebrow">FITTER SENT IT?</span>
-          <strong className={`sent-${sent.label.toLowerCase()}`}>{sent.label}</strong>
-          <p>{sent.detail}</p>
+          <FitterSentConfirm
+            jobId={job.id}
+            currentLabel={sent.label}
+            detail={sent.detail}
+            owedLabel={toSend !== null && toSend > 0 ? money(toSend) : undefined}
+          />
         </div>
       </section>;
     })() : null}

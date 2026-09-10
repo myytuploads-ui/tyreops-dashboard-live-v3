@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 
@@ -18,6 +19,7 @@ type Job = {
   locking_wheel_nut?: string | boolean | null;
   customer_notes?: string | null;
   notes?: string | null;
+  customer_phone?: string | null;
   customer_price?: number | string | null;
   maximum_fitter_cost?: number | string | null;
   maximum_eta_minutes?: number | string | null;
@@ -113,13 +115,13 @@ export default function ManagerActions({ job, offers, fitters, depositRules, fir
           <button type="button" className="btn primary" disabled={Boolean(busy) || !matchingDeposit} onClick={() => void post('/api/price-job', { job_id: job.id, customer_price: customerPrice, deposit_amount: matchingDeposit?.deposit_fixed_gbp, maximum_fitter_cost: maxFitterCost, maximum_eta_minutes: maxEta, owner_notes: ownerNotes }, 'Quote sent. Refreshing the authoritative job state...')}>{busy ? 'Sending…' : matchingDeposit ? 'Confirm & send quote' : 'Needs a matching deposit rule'}</button>
         </div>
       </> : null}
-      {isFirstRefusal && !firstRefusalReady ? <div className="backendContractNotice">This owner decision is still handled from the owner alert link for this job.</div> : null}
+      {isFirstRefusal && !firstRefusalReady ? <div className="backendContractNotice">This owner decision is still handled from the owner alert link for this job.<div className="backendContractFallbacks"><Link className="atelierButton" href={`/conversations?job=${job.id}`}>Open inbox</Link>{job.customer_phone ? <a className="atelierButton" href={`https://wa.me/${String(job.customer_phone).replace(/\D/g, '')}`} target="_blank" rel="noreferrer">WhatsApp customer</a> : null}{job.customer_phone ? <a className="atelierButton" href={`tel:${String(job.customer_phone).replace(/[^+0-9]/g, '')}`}>Call customer</a> : null}</div></div> : null}
       {isFirstRefusal && firstRefusalReady ? <div className="firstRefusalActions">
         <button type="button" className="btn primary" disabled={Boolean(busy)} onClick={() => window.confirm('Take this job yourself?') && void post('/api/first-refusal', { job_id: job.id, action: 'accept' }, 'Job accepted. Refreshing...')}>Take Job</button>
         <button type="button" className="btn btnDangerQuiet" disabled={Boolean(busy)} onClick={() => window.confirm('Decline and send this job onward?') && void post('/api/first-refusal', { job_id: job.id, action: 'decline' }, 'Job sent onward. Refreshing...')}>Decline & send on</button>
         {[15, 30, 60, 1440].map((minutes) => <button type="button" className="btn" disabled={Boolean(busy)} onClick={() => void post('/api/first-refusal', { job_id: job.id, action: 'snooze', snooze_minutes: minutes }, 'Snoozed. Refreshing...')} key={minutes}>{minutes === 1440 ? 'Snooze until tomorrow' : `Snooze ${minutes} min`}</button>)}
       </div> : null}
-      {isAssignment && !assignmentReady ? <div className="backendContractNotice">Fitter assignment is still handled by the existing dispatch flow for this job.</div> : null}
+      {isAssignment && !assignmentReady ? <div className="backendContractNotice">Fitter assignment is still handled by the existing dispatch flow for this job.<div className="backendContractFallbacks"><Link className="atelierButton" href={`/conversations?job=${job.id}`}>Open inbox</Link>{job.customer_phone ? <a className="atelierButton" href={`https://wa.me/${String(job.customer_phone).replace(/\D/g, '')}`} target="_blank" rel="noreferrer">WhatsApp customer</a> : null}{job.customer_phone ? <a className="atelierButton" href={`tel:${String(job.customer_phone).replace(/[^+0-9]/g, '')}`}>Call customer</a> : null}</div></div> : null}
       {isAssignment && assignmentReady ? <div className="assignmentOffers">{offers.length ? offers.map((offer, offerIndex) => {
         const fitter = fitterMap.get(String(offer.fitter_id));
         return <article className="assignmentOffer" key={offer.id}><div><strong>{fitter?.full_name || offer.fitter_name || 'Fitter'}</strong><span>{fitter?.priority_level ? `Priority ${fitter.priority_level}` : 'General'} · reliability {fitter?.reliability_score ?? '—'} · completed {fitter?.completed_jobs ?? '—'}</span></div><div><b>{offer.quoted_cost != null ? `£${Number(offer.quoted_cost).toFixed(0)}` : '—'}</b><span>{offer.eta_minutes != null ? `${offer.eta_minutes} min ETA` : 'ETA —'}</span></div><button type="button" className={offerIndex === 0 ? 'btn primary' : 'btn'} disabled={Boolean(busy)} onClick={() => window.confirm(`Assign ${fitter?.full_name || 'this fitter'}?`) && void post('/api/fitter-assignment', { job_id: job.id, offer_id: offer.id }, 'Fitter assigned. Refreshing...')}>Assign fitter</button></article>;

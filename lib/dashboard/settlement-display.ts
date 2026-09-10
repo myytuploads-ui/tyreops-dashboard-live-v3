@@ -19,7 +19,7 @@ export function fitterToSendAmount(settlement: Row | null | undefined, job?: Row
   return null;
 }
 
-/** Read-only. No owner-confirm write API exists for fitter remittance. */
+/** Owner can confirm remittance via /api/settlement-fitter-sent. */
 export function fitterSentState(settlement: Row | null | undefined): { label: 'Yes' | 'No' | 'Unknown'; detail: string } {
   if (!settlement) return { label: 'Unknown', detail: 'No settlement record yet.' };
   const status = String(settlement.settlement_status || '').toLowerCase();

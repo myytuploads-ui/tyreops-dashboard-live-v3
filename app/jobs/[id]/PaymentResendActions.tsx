@@ -6,27 +6,48 @@ import { useState } from 'react';
 
 type Mode = 'expired' | 'awaiting';
 
+function digitsOnly(phone: string) {
+  return String(phone || '').replace(/\D/g, '');
+}
+
+function paymentChaseMessage(publicJobId: string | undefined, jobId: string, amountLabel?: string) {
+  const jobLabel = (publicJobId && String(publicJobId).trim()) || String(jobId).slice(0, 8);
+  const amountBit = amountLabel ? ` (${amountLabel} deposit)` : '';
+  return `Hi — job ${jobLabel}. Just following up on the Rescue Tyres payment${amountBit}. Reply here if you need the link again — happy to resend. Thanks.`;
+}
+
 export default function PaymentResendActions({
   jobId,
   mode,
   amountLabel,
+  customerPhone,
+  publicJobId,
+  webhookResendAvailable = false,
 }: {
   jobId: string;
   mode: Mode;
   amountLabel?: string;
+  customerPhone?: string;
+  publicJobId?: string;
+  webhookResendAvailable?: boolean;
 }) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState('');
   const [error, setError] = useState('');
-  const [notConfigured, setNotConfigured] = useState(false);
+  const [webhookHint, setWebhookHint] = useState('');
 
-  async function resend() {
-    if (busy) return;
+  const digits = digitsOnly(customerPhone || '');
+  const waHref = digits
+    ? `https://wa.me/${digits}?text=${encodeURIComponent(paymentChaseMessage(publicJobId, jobId, amountLabel))}`
+    : '';
+
+  async function resendWebhook() {
+    if (busy || !webhookResendAvailable) return;
     setBusy(true);
     setError('');
     setNotice('');
-    setNotConfigured(false);
+    setWebhookHint('');
     try {
       const response = await fetch('/api/resend-payment', {
         method: 'POST',
@@ -35,8 +56,7 @@ export default function PaymentResendActions({
       });
       const result = await response.json().catch(() => ({})) as { ok?: boolean; error?: string };
       if (response.status === 503) {
-        setNotConfigured(true);
-        setError("Payment resend webhook isn't configured yet — message the customer for now.");
+        setWebhookHint("Automated resend isn't wired yet — use WhatsApp or Inbox above.");
         return;
       }
       if (!response.ok || !result?.ok) {
@@ -51,10 +71,10 @@ export default function PaymentResendActions({
     }
   }
 
-  const title = mode === 'expired' ? 'Payment link expired' : 'Payment needs a fresh link';
+  const title = mode === 'expired' ? 'Payment link expired' : 'Payment needs a chase';
   const body = mode === 'expired'
-    ? 'Create a fresh Stripe payment link and send it to the customer.'
-    : "The current link isn't usable. Send a fresh one, or message the customer while you sort it.";
+    ? 'Message the customer now. Fresh Stripe resend is optional if configured.'
+    : 'Chase the customer on WhatsApp or Inbox. Automated resend stays optional.';
 
   return (
     <section className="panel ownerActionPanel paymentResendPanel" id="payment-resend">
@@ -69,13 +89,23 @@ export default function PaymentResendActions({
         </div>
       </div>
       <div className="panelBody">
-        {error ? <div className={notConfigured ? 'paymentResendHint' : 'error'}>{error}</div> : null}
+        {error ? <div className="error">{error}</div> : null}
+        {webhookHint ? <div className="paymentResendHint">{webhookHint}</div> : null}
         {notice ? <div className="success">{notice}</div> : null}
         <div className="paymentResendActions">
-          <button type="button" className="btn primary" disabled={busy} onClick={() => void resend()}>
-            {busy ? 'Sending…' : 'Resend payment link'}
-          </button>
-          <Link className="atelierButton" href={`/conversations?job=${jobId}`}>Message customer</Link>
+          {waHref ? (
+            <a className="btn primary" href={waHref} target="_blank" rel="noreferrer">
+              Chase on WhatsApp{amountLabel ? ` ${amountLabel}` : ''}
+            </a>
+          ) : (
+            <Link className="btn primary" href={`/conversations?job=${jobId}`}>Message customer</Link>
+          )}
+          {waHref ? <Link className="atelierButton" href={`/conversations?job=${jobId}`}>Open inbox</Link> : null}
+          {webhookResendAvailable ? (
+            <button type="button" className="atelierButton" disabled={busy} onClick={() => void resendWebhook()}>
+              {busy ? 'Sending…' : 'Resend payment link (webhook)'}
+            </button>
+          ) : null}
         </div>
       </div>
     </section>

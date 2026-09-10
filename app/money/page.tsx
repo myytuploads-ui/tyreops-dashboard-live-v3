@@ -34,7 +34,7 @@ export default async function MoneyPage({ searchParams }: { searchParams?: Promi
 
   const supabase = await createClient();
   const [{ data: jobs }, { data: payments }, { data: settlements, error: settlementError }] = await Promise.all([
-    supabase.from('jobs').select('id,public_job_id,status,postcode,postcode_area,customer_price,deposit_amount,remaining_customer_balance,agreed_fitter_cost,completed_at,updated_at').order('updated_at', { ascending: false }).limit(500),
+    supabase.from('jobs').select('id,public_job_id,status,postcode,postcode_area,customer_price,deposit_amount,remaining_customer_balance,agreed_fitter_cost,assigned_fitter_id,completed_at,updated_at').order('updated_at', { ascending: false }).limit(500),
     supabase.from('payments').select('job_id,status,amount,paid_at').eq('status', 'paid'),
     supabase.from('job_settlements').select('job_id,customer_agreed_total,deposit_received,customer_remaining_balance,fitter_agreed_cost,rescue_tyres_entitlement,settlement_outstanding,settlement_status,created_at').order('created_at', { ascending: false }).limit(200),
   ]);
@@ -43,6 +43,14 @@ export default async function MoneyPage({ searchParams }: { searchParams?: Promi
   const paymentList = payments || [];
   const settlementList = settlements || [];
   const jobsById = new Map(jobList.map((job) => [String(job.id), job]));
+  const assignedFitterIds = [...new Set(jobList.map((job) => job.assigned_fitter_id).filter(Boolean).map(String))];
+  const { data: moneyFitters } = assignedFitterIds.length
+    ? await supabase.from('fitters').select('id,whatsapp_phone,phone').in('id', assignedFitterIds)
+    : { data: [] as Row[] };
+  const fitterPhoneById = new Map((moneyFitters || []).map((fitter) => {
+    const phone = String(fitter.whatsapp_phone || fitter.phone || '').trim();
+    return [String(fitter.id), phone] as const;
+  }).filter(([, phone]) => Boolean(phone)));
 
   const paidAll = paymentList.reduce((sum, payment) => sum + (Number(payment.amount) || 0), 0);
   const completed = jobList.filter((job) => job.status === 'completed');
@@ -134,16 +142,34 @@ export default async function MoneyPage({ searchParams }: { searchParams?: Promi
           const title = job?.public_job_id || 'Completed job';
           const place = job?.postcode || job?.postcode_area || '';
           const id = settlement?.job_id || job?.id;
-          return <Link className="atelierRemitRow" href={`/jobs/${id}`} key={String(id)}>
-            <div>
-              <strong>{title}</strong>
-              <p>{place ? `${place} · ` : ''}{formatDay(when)}</p>
+          const fitterPhone = job?.assigned_fitter_id ? (fitterPhoneById.get(String(job.assigned_fitter_id)) || '') : '';
+          const digits = fitterPhone.replace(/\D/g, '');
+          const amount = toSend !== null && toSend > 0 ? toSend : null;
+          const chaseText = amount !== null
+            ? `Hi — job ${String(title)}. Please send the remaining £${amount.toLocaleString('en-GB', { maximumFractionDigits: 0 })} for Rescue Tyres when you can. Thanks.`
+            : '';
+          const chaseHref = digits && amount !== null
+            ? `https://wa.me/${digits}?text=${encodeURIComponent(chaseText)}`
+            : '';
+          return <div className="atelierRemitRow" key={String(id)}>
+            <Link className="atelierRemitMain" href={`/jobs/${id}`}>
+              <div>
+                <strong>{title}</strong>
+                <p>{place ? `${place} · ` : ''}{formatDay(when)}</p>
+              </div>
+              <div className="atelierRemitRowRight">
+                <strong>{toSend === null ? '—' : toSend > 0 ? `Fitter to send ${gbp(toSend)}` : 'Cleared'}</strong>
+                <span className={`sent-${sent.label.toLowerCase()}`}>Sent? {sent.label}</span>
+              </div>
+            </Link>
+            <div className="atelierRemitChase">
+              {amount !== null ? (
+                chaseHref
+                  ? <a className="atelierButton primary atelierRemitChaseBtn" href={chaseHref} target="_blank" rel="noreferrer">Chase WhatsApp</a>
+                  : <Link className="atelierButton atelierRemitChaseBtn" href={`/jobs/${id}#settlement`}>Open settlement</Link>
+              ) : null}
             </div>
-            <div className="atelierRemitRowRight">
-              <strong>{toSend === null ? '—' : toSend > 0 ? `Fitter to send ${gbp(toSend)}` : 'Cleared'}</strong>
-              <span className={`sent-${sent.label.toLowerCase()}`}>Sent? {sent.label}</span>
-            </div>
-          </Link>;
+          </div>;
         })}
       </div>
       {!list.length ? <div className="atelierEmpty"><h2>Nothing in this period.</h2><p>Completed jobs will appear here.</p></div> : null}
