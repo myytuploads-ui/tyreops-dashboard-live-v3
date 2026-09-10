@@ -63,7 +63,7 @@
   .atelierUrgentCard .atelierButton.primary{min-height:48px;font-size:13px}
 }
 
-/* Calm owner earnings — compact, Needs You stays primary */
+/* Calm owner earnings â€” compact, Needs You stays primary */
 .atelierEarningsStrip{display:flex;align-items:center;gap:18px;flex-wrap:wrap;margin:0 0 18px;padding:10px 2px 14px;border-bottom:1px solid #ffffff0a}
 .atelierEarningsStrip>.eyebrow{flex:none;margin:0}
 .atelierEarningsFigures{display:flex;gap:22px;flex:1;min-width:0;flex-wrap:wrap}
@@ -249,9 +249,18 @@
 .operationsInbox .conversationItem{min-height:64px}
 .operationsInbox .conversationSearch input{font-size:16px;min-height:44px}
 
-/* Detail next-step: never a second full red (scroll affordance only) */
-.atelierNextStep .atelierButton.primary{background:#242830!important;border:1px solid #ffffff10!important;color:#fff!important}
-.atelierNextStep .atelierButton{min-height:44px}
+/* Detail command centre */
+.atelierCommandActionsQuiet{opacity:.85}
+.atelierNextStatus{margin:8px 0 0}
+.atelierAssistHint{margin:8px 0 0;font-size:12px;color:#c4b28a}
+.atelierBackendGap{margin:8px 0 0;font-size:12px;color:#dcc58a}
+.atelierNextStep .atelierButton{min-height:48px}
+.atelierProgressSlim{margin-top:22px;gap:4px;opacity:.72}
+.atelierProgressSlim>div{font-size:10px}
+.atelierProgressSlim i{width:22px;height:22px;font-size:10px}
+.atelierJobDetail .atelierCommandTop .atelierButton.primary{display:none}
+.badge.completed,.badge.deposit_paid{background:#37d67a1a;color:#7ae8a4}
+.badge.awaiting_owner_price,.badge.awaiting_owner_first_refusal,.badge.manual_review,.badge.payment_link_expired{background:#eec35a1a;color:#e6c471}
 
 /* ===== Visually pleasing premium graphite (ops-first beauty) ===== */
 .loginWrap{

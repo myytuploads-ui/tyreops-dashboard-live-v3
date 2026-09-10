@@ -65,18 +65,63 @@ function compactEvents(events: Row[]) {
   return rows;
 }
 
-function nextStepCopy(status: unknown, ownerNeeded: boolean) {
+function nextStepCopy(status: unknown, ownerNeeded: boolean, opts: { hasSuggested?: boolean; firstRefusalReady?: boolean; assignmentReady?: boolean; hasPhone?: boolean } = {}) {
   const s = String(status || '').toLowerCase();
-  if (s === 'awaiting_owner_price') return { title: 'Set price', body: 'Confirm the quote below. TyreOps sends the payment link.' };
-  if (s === 'awaiting_owner_first_refusal') return { title: 'Your call on this job', body: 'Take it, send it on, or snooze — one tap.' };
-  if (s === 'awaiting_group_dispatch') return { title: 'Find a group fitter', body: 'Copy the group message, then assign an offer when it lands.' };
-  if (['offers_received', 'awaiting_owner_assignment', 'deposit_paid'].includes(s)) return { title: 'Choose a fitter', body: 'Assign someone now so the customer gets moving.' };
-  if (s === 'awaiting_payment') return { title: 'Waiting on payment', body: 'Customer has the link. Call or WhatsApp if they stall.' };
-  if (s === 'payment_link_expired') return { title: 'Payment expired', body: 'Open the conversation and recover with the customer.' };
-  if (s === 'manual_review') return { title: 'Needs a human look', body: 'Open the conversation or assign a fitter if that unblocks it.' };
-  if (['assigned', 'fitter_on_route', 'arrived', 'in_progress'].includes(s)) return { title: 'Fitter is progressing', body: 'Monitor here. Call or WhatsApp if you need to intervene.' };
-  if (ownerNeeded) return { title: 'Needs your attention', body: 'Review the details and take the clearest next step below.' };
-  return { title: 'Job overview', body: 'Everything important for this job is on this screen.' };
+  if (s === 'awaiting_owner_price') return {
+    title: 'Set price',
+    body: opts.hasSuggested ? 'Suggested price is ready below. Review and confirm — TyreOps sends the payment link.' : 'Confirm the quote below. TyreOps sends the payment link.',
+    cta: 'Set price', href: '#set-price', panel: true as const, assist: opts.hasSuggested ? 'Assist: suggested price prepared — you still Approve.' : null as string | null, blocked: false,
+  };
+  if (s === 'awaiting_owner_first_refusal') return {
+    title: 'Your call on this job',
+    body: opts.firstRefusalReady ? 'Take it, send it on, or snooze — one clear decision.' : 'Decision API is not wired in this environment yet.',
+    cta: opts.firstRefusalReady ? 'Decide now' : 'Decision unavailable', href: '#owner-action', panel: true as const, assist: null, blocked: !opts.firstRefusalReady,
+  };
+  if (s === 'awaiting_group_dispatch') return {
+    title: 'Find a group fitter', body: 'Copy the group message, then assign when an offer lands.',
+    cta: 'Open group dispatch', href: '#owner-action', panel: true as const, assist: null, blocked: false,
+  };
+  if (['offers_received', 'awaiting_owner_assignment', 'deposit_paid'].includes(s)) return {
+    title: 'Choose a fitter',
+    body: 'Assign someone now so the customer gets moving.',
+    cta: 'Assign fitter', href: '#owner-action', panel: true as const, assist: null, blocked: false,
+  };
+  if (s === 'awaiting_payment') return {
+    title: 'Waiting on payment', body: 'Customer has the link. Chase if they stall.',
+    cta: opts.hasPhone ? 'Chase on WhatsApp' : 'Open inbox', href: opts.hasPhone ? 'WHATSAPP' : 'INBOX', panel: false as const, assist: null, blocked: false,
+  };
+  if (s === 'payment_link_expired') return {
+    title: 'Payment expired', body: 'Recover with the customer — no silent resend from here.',
+    cta: 'Open inbox', href: 'INBOX', panel: false as const, assist: null, blocked: false,
+  };
+  if (s === 'manual_review') return {
+    title: 'Needs a human look', body: 'Open the conversation or assign a fitter if that unblocks it.',
+    cta: 'Open inbox', href: 'INBOX', panel: false as const, assist: null, blocked: false,
+  };
+  if (['assigned', 'fitter_on_route', 'arrived', 'in_progress'].includes(s)) return {
+    title: 'Fitter is progressing', body: 'Monitor here. Intervene only if needed.',
+    cta: opts.hasPhone ? 'Call customer' : 'Open inbox', href: opts.hasPhone ? 'TEL' : 'INBOX', panel: false as const, assist: null, blocked: false,
+  };
+  if (s === 'completed') return {
+    title: 'Job complete', body: 'Check what the fitter still owes — settle from Money if needed.',
+    cta: 'Review settlement', href: '#settlement', panel: false as const, assist: null, blocked: false,
+  };
+  if (ownerNeeded) return {
+    title: 'Needs your attention', body: 'Take the clearest next step below.',
+    cta: 'Take action', href: '#owner-action', panel: true as const, assist: null, blocked: false,
+  };
+  return { title: 'On track', body: 'Nothing blocked. Details stay below.', cta: 'Open inbox', href: 'INBOX', panel: false as const, assist: null, blocked: false };
+}
+
+function slimStage(status: unknown, job: Row) {
+  const s = String(status || '').toLowerCase();
+  if (s === 'completed') return 6;
+  if (s === 'in_progress' || s === 'arrived') return 5;
+  if (s === 'fitter_on_route' || s === 'on_route') return 4;
+  if (job.assigned_fitter_id) return 3;
+  if (job.deposit_verified_at) return 2;
+  if (job.customer_price != null) return 1;
+  return 0;
 }
 
 export default async function JobDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -129,51 +174,64 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
     }
   }
 
-  const next = nextStepCopy(job.status, ownerNeeded);
+  const firstRefusalReady = Boolean(process.env.TYREOPS_FIRST_REFUSAL_URL?.trim());
+  const assignmentReady = Boolean(process.env.TYREOPS_FITTER_ASSIGNMENT_URL?.trim());
   const tel = job.customer_phone ? `tel:${String(job.customer_phone).replace(/[^+0-9]/g, '')}` : '';
   const wa = job.customer_phone ? `https://wa.me/${String(job.customer_phone).replace(/\D/g, '')}` : '';
   const maps = (job.postcode || job.postcode_area) ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(job.postcode || job.postcode_area)}` : '';
+  const next = nextStepCopy(job.status, ownerNeeded, {
+    hasSuggested: Boolean(suggestedQuote && (suggestedQuote as any).quote_status === 'priced'),
+    firstRefusalReady,
+    assignmentReady,
+    hasPhone: Boolean(tel || wa),
+  });
+  const ctaHref = next.href === 'INBOX' ? `/conversations?job=${job.id}` : next.href === 'WHATSAPP' ? wa : next.href === 'TEL' ? tel : next.href;
+  const stage = slimStage(job.status, job);
+  const panelOwnsPrimary = Boolean(next.panel && !next.blocked);
 
   return <div className="atelierPage atelierJobDetail">
     <header className="atelierCommand">
       <Link className="atelierBack" href="/jobs">← All jobs</Link>
       <div className="atelierCommandTop">
         <div>
-          <StatusBadge status={job.status} />
           <h1>{formatPostcode(job.postcode || job.postcode_area)}</h1>
           <p>{job.tyre_size || 'Tyre details pending'}{job.tyre_quantity ? ` × ${job.tyre_quantity}` : ''}</p>
           <small>{job.public_job_id}</small>
         </div>
-        <div className="atelierCommandActions">
-          {tel ? <a className="atelierButton" href={tel}>Call</a> : null}
-          {wa ? <a className="atelierButton" href={wa} target="_blank" rel="noreferrer">WhatsApp</a> : null}
-          {maps ? <a className="atelierButton" href={maps} target="_blank" rel="noreferrer">Maps</a> : null}
+        <div className="atelierCommandActions atelierCommandActionsQuiet">
           <Link className="atelierButton" href={`/conversations?job=${job.id}`}>Inbox</Link>
         </div>
       </div>
-            <section className={`atelierNextStep${ownerNeeded ? ' needsYou' : ''}`}>
+      <section className={`atelierNextStep${ownerNeeded ? ' needsYou' : ''}`}>
         <div>
           <span className="eyebrow">{ownerNeeded ? 'NEXT FOR YOU' : 'STATUS'}</span>
+          <div className="atelierNextStatus"><StatusBadge status={job.status} /></div>
           <h2>{next.title}</h2>
           <p>{next.body}</p>
+          {next.assist ? <p className="atelierAssistHint">{next.assist}</p> : null}
+          {next.blocked ? <p className="atelierBackendGap">Backend gap: this step has no safe API in this environment.</p> : null}
         </div>
-        {String(job.status || '').toLowerCase() === 'awaiting_owner_price'
-          ? <a className="atelierButton" href="#set-price">Go to price ↗</a>
-          : ownerNeeded
-            ? <a className="atelierButton" href="#owner-action">Take action ↗</a>
-            : null}
+        {ctaHref ? (
+          next.href === 'INBOX' ? (
+            <Link className={panelOwnsPrimary || next.blocked ? 'atelierButton' : 'atelierButton primary'} href={ctaHref}>{next.cta} ↗</Link>
+          ) : next.href.startsWith('#') ? (
+            <a className={panelOwnsPrimary || next.blocked ? 'atelierButton' : 'atelierButton primary'} href={ctaHref}>{next.cta}</a>
+          ) : (
+            <a className="atelierButton primary" href={ctaHref} target={next.href === 'WHATSAPP' ? '_blank' : undefined} rel={next.href === 'WHATSAPP' ? 'noreferrer' : undefined}>{next.cta} ↗</a>
+          )
+        ) : null}
       </section>
-      <div className="atelierProgress" aria-hidden="true">{['Enquiry','Quote','Deposit','Fitter','On route','Fitting','Complete'].map((label,i)=>{const stage=job.status==='completed'?6:job.status==='in_progress'||job.status==='arrived'?5:job.status==='fitter_on_route'||job.status==='on_route'?4:job.assigned_fitter_id?3:job.deposit_verified_at?2:job.customer_price!=null?1:0;return <div className={i<=stage?'reached':''} key={label}><i>{i<stage?'✓':i+1}</i><span>{label}</span></div>})}</div>
+      <div className="atelierProgress atelierProgressSlim" aria-hidden="true">{['Enquiry','Quote','Deposit','Fitter','On route','Fitting','Done'].map((label,i)=><div className={i<=stage?'reached':''} key={label}><i>{i<stage?'✓':i+1}</i><span>{label}</span></div>)}</div>
     </header>
 
-    <ManagerActions job={job as any} offers={offers} fitters={fitters} depositRules={depositRules} firstRefusalReady={Boolean(process.env.TYREOPS_FIRST_REFUSAL_URL?.trim())} assignmentReady={Boolean(process.env.TYREOPS_FITTER_ASSIGNMENT_URL?.trim())} suggestedQuote={suggestedQuote as any} />
+    <ManagerActions job={job as any} offers={offers} fitters={fitters} depositRules={depositRules} firstRefusalReady={firstRefusalReady} assignmentReady={assignmentReady} suggestedQuote={suggestedQuote as any} />
     {job.status === 'awaiting_group_dispatch' ? <GroupDispatchCard jobId={job.id} tyreSize={job.tyre_size || ''} quantity={job.tyre_quantity} area={job.postcode || job.postcode_area || ''} /> : null}
 
     {String(job.status || '').toLowerCase() === 'completed' ? (() => {
       const owed = owedNowAmount(settlement, job);
       const toSend = fitterToSendAmount(settlement, job);
       const sent = fitterSentState(settlement);
-      return <section className="atelierSettlementCard" aria-label="Settlement">
+      return <section className="atelierSettlementCard" id="settlement" aria-label="Settlement">
         <div className="atelierSettlementOwed">
           <span className="eyebrow">OWED RIGHT NOW</span>
           <strong>{owed === null ? '—' : money(owed)}</strong>
