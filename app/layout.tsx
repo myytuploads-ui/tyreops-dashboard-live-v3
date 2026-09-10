@@ -1,6 +1,7 @@
 import './globals.css';
 import './atelier.css';
 import Sidebar from '@/components/Sidebar';
+import OwnerTopChrome from '@/components/OwnerTopChrome';
 import type { Metadata, Viewport } from 'next';
 import { Suspense } from 'react';
 
@@ -37,6 +38,6 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return <html lang="en"><body><div className="productApp">
     <Suspense fallback={<aside className="productSidebar productSidebarLoading" />}><Sidebar /></Suspense>
-    <main className="productMain">{children}</main>
+    <main className="productMain"><OwnerTopChrome />{children}</main>
   </div></body></html>;
 }
