@@ -4,6 +4,7 @@ import type {
   ConversationMode,
   MessageActor,
 } from '@/app/conversations/ConversationsInbox';
+import { classifyMessageMedia, extractMediaFields } from '@/lib/conversations/message-media';
 
 export type ConversationRow = Record<string, any>;
 
@@ -91,14 +92,31 @@ export function buildJobScopedConversations(input: {
       continue;
     }
     thread.seen.add(dedupeKey);
+    const rawText = firstValue(row, ['message_text', 'text', 'body']) || 'Empty message';
+    const media = extractMediaFields(row as Record<string, unknown>);
+    const classified = classifyMessageMedia({
+      text: rawText,
+      mediaUrl: media.mediaUrl,
+      mediaId: media.mediaId,
+      messageType: media.messageType,
+      mimeType: media.mimeType,
+      caption: media.caption,
+    });
     thread.messages.push({
       id: String(row.id),
       jobId,
       direction: String(row.direction || '').trim().toLowerCase().startsWith('in') ? 'inbound' : 'outbound',
-      text: firstValue(row, ['message_text', 'text', 'body']) || 'Empty message',
+      text: rawText,
       createdAt: firstValue(row, ['created_at']),
       // Include AI / owner / operator / system / unknown — never filter outbound AI.
       actor: resolveMessageActor(row.sent_by),
+      mediaUrl: media.mediaUrl || undefined,
+      mediaId: media.mediaId || undefined,
+      messageType: media.messageType || undefined,
+      mimeType: media.mimeType || undefined,
+      caption: classified.displayCaption || undefined,
+      mediaKind: classified.kind === 'text' ? undefined : classified.kind,
+      previewText: classified.previewText,
     });
     threads.set(jobId, thread);
   }
@@ -146,7 +164,7 @@ export function buildJobScopedConversations(input: {
             ? jobStatus.replaceAll('_', ' ')
             : '',
       // Inbox preview is latest message for THIS job_id only.
-      latestText: latest.text,
+      latestText: latest.previewText || latest.text,
       latestAt: latest.createdAt,
       messages: thread.messages.map(({ jobId: _jobId, ...message }) => message),
       jobContext: job

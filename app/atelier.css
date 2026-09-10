@@ -817,3 +817,27 @@
 .groupDispatchFeedback .backendContractFallbacks{margin-top:10px}
 .atelierEarningsStrip{opacity:.88}
 .atelierPriority.hasAttention{box-shadow:0 18px 40px rgba(0,0,0,.28)}
+
+/* Owner inbox — photo bubbles + honest missing-media */
+.operationsInbox .previewPhotoLabel{display:inline-flex;align-items:center;gap:7px;min-width:0;max-width:100%}
+.operationsInbox .previewPhotoThumb{width:28px;height:28px;border-radius:7px;object-fit:cover;flex:none;border:1px solid rgba(255,255,255,.08);background:#0d1116}
+.operationsInbox .messageBubble.hasMedia{padding:8px}
+.operationsInbox .messageBubble.missingMedia{border-color:rgba(237,48,71,.22);background:linear-gradient(180deg,#1a2229,#171c22)}
+.operationsInbox .messageMedia{display:grid;gap:7px;margin:6px 0}
+.operationsInbox .messageMediaButton{display:block;padding:0;border:0;background:transparent;cursor:zoom-in;border-radius:12px;overflow:hidden;max-width:100%}
+.operationsInbox .messageMediaButton img{display:block;width:100%;max-width:280px;max-height:320px;object-fit:cover;border-radius:12px;background:#0b0f13}
+.operationsInbox .messageCaption{margin:0;color:#d5d8dd;font-size:11px;line-height:1.45;white-space:pre-wrap;overflow-wrap:anywhere}
+.operationsInbox .messageMediaMissing{display:grid;gap:8px;margin:6px 0;padding:10px 11px;border:1px dashed rgba(255,255,255,.12);border-radius:12px;background:rgba(255,255,255,.02)}
+.operationsInbox .messageMediaMissing>strong{color:#e8eaed;font-size:11px;font-weight:800;letter-spacing:.01em}
+.operationsInbox .openWhatsAppLink{display:inline-flex;align-items:center;justify-content:center;min-height:36px;padding:8px 12px;border-radius:10px;border:1px solid rgba(237,48,71,.35);background:rgba(237,48,71,.1);color:#ff7a8a;font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:.04em;text-decoration:none;width:fit-content}
+.operationsInbox .openWhatsAppLink:hover{background:rgba(237,48,71,.16)}
+.operationsInbox .openWhatsAppUnavailable{color:#7d8791;font-size:10px}
+.operationsInbox .inboxLightbox{position:fixed;inset:0;z-index:80;display:grid;place-items:center;gap:12px;padding:18px;background:rgba(8,10,12,.88);backdrop-filter:blur(6px)}
+.operationsInbox .inboxLightbox img{max-width:min(920px,94vw);max-height:78vh;border-radius:14px;border:1px solid rgba(255,255,255,.08);box-shadow:0 24px 60px rgba(0,0,0,.45);object-fit:contain;background:#0b0f13}
+.operationsInbox .inboxLightboxClose,.operationsInbox .inboxLightboxOpenTab{border:1px solid rgba(255,255,255,.12);border-radius:999px;background:#171b21;color:#e8eaed;padding:9px 14px;font-size:11px;font-weight:800;cursor:pointer;text-decoration:none}
+.operationsInbox .inboxLightboxClose{position:absolute;top:16px;right:16px}
+@media(max-width:700px){
+  .operationsInbox .messageMediaButton img{max-width:100%;max-height:260px}
+  .operationsInbox .openWhatsAppLink{min-height:44px;width:100%;justify-content:center}
+}
+

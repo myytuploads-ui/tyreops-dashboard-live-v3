@@ -16,6 +16,7 @@ export default async function ConversationsPage({ searchParams }: { searchParams
   const [jobsResult, messagesResult, customersResult, fittersResult] = await Promise.all([
     supabase.from('jobs').select('*').order('updated_at', { ascending: false }).limit(JOB_WINDOW),
     // Newest first: keep latest N globally, then each thread sorts ASC for display.
+    // select('*') soft-includes media_url / media_id / message_type / caption when present in DB.
     supabase.from('messages').select('*').order('created_at', { ascending: false }).limit(MESSAGE_WINDOW),
     supabase.from('customers').select('*').limit(1000),
     supabase.from('fitters').select('id,full_name').limit(1000),

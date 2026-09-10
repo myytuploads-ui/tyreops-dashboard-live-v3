@@ -7,7 +7,21 @@ import { createClient } from '@/lib/supabase/client';
 
 export type ConversationMode = 'ai' | 'human';
 export type MessageActor = 'ai' | 'owner' | 'operator' | 'system' | 'unknown';
-export type ConversationMessage = { id: string; direction: 'inbound' | 'outbound'; text: string; createdAt: string; actor: MessageActor };
+export type ConversationMediaKind = 'image' | 'missing_image';
+export type ConversationMessage = {
+  id: string;
+  direction: 'inbound' | 'outbound';
+  text: string;
+  createdAt: string;
+  actor: MessageActor;
+  mediaUrl?: string;
+  mediaId?: string;
+  messageType?: string;
+  mimeType?: string;
+  caption?: string;
+  mediaKind?: ConversationMediaKind;
+  previewText?: string;
+};
 export type JobContext = { urgency: string; tyreSize: string; quantity: string; location: string; vehicleRegistration: string; requestedTime: string; customerPrice: string; paymentStatus: string; fitterName: string; dispatchStatus: string };
 export type Conversation = { id: string; jobId: string | null; customerName: string; phone: string; publicJobId: string; jobStatus: string; jobHint: string; mode: ConversationMode; needsAttention: boolean; attentionReason: string; latestText: string; latestAt: string; messages: ConversationMessage[]; jobContext: JobContext | null };
 type InboxFilter = 'all' | 'attention' | 'human' | 'ai';
@@ -73,6 +87,7 @@ export default function ConversationsInbox({ conversations, notices = [], initia
   const [sendingReply, setSendingReply] = useState(false);
   const [feedback, setFeedback] = useState<{ threadId: string; type: 'success' | 'error'; text: string } | null>(null);
   const historyEnd = useRef<HTMLDivElement>(null);
+  const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
   const requestInFlight = useRef(false);
   const replyInFlight = useRef(false);
   const refreshGuard = useRef(false);
@@ -122,6 +137,15 @@ export default function ConversationsInbox({ conversations, notices = [], initia
   }, [conversations]);
 
   useEffect(() => { historyEnd.current?.scrollIntoView({ block: 'end' }); }, [selected?.id, selected?.messages.length]);
+
+  useEffect(() => {
+    if (!lightboxUrl) return;
+    function onKey(event: KeyboardEvent) {
+      if (event.key === 'Escape') setLightboxUrl(null);
+    }
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [lightboxUrl]);
 
   useEffect(() => {
     let guardTimer: number | undefined;
@@ -259,7 +283,13 @@ export default function ConversationsInbox({ conversations, notices = [], initia
             const mode = modeOverrides[conversation.id] || conversation.mode;
             return <button type="button" className={`conversationItem ${selected?.id === conversation.id ? 'selected' : ''} ${conversation.needsAttention ? 'needsYou' : ''}`} key={conversation.id} onClick={() => selectConversation(conversation.id)}>
               <div className="conversationItemTop"><strong>{conversation.customerName === 'Unknown customer' ? conversation.phone : conversation.customerName}</strong><time>{timestamp(conversation.latestAt, true)}</time></div>
-              <div className="conversationPreview">{conversation.latestText}</div>
+              <div className="conversationPreview">{(() => {
+                const latestMsg = conversation.messages[conversation.messages.length - 1];
+                if (latestMsg?.mediaKind === 'image' && latestMsg.mediaUrl) {
+                  return <span className="previewPhotoLabel"><img className="previewPhotoThumb" src={latestMsg.mediaUrl} alt="" loading="lazy" /><span>{conversation.latestText}</span></span>;
+                }
+                return conversation.latestText;
+              })()}</div>
               <div className="threadMeta"><span className={`modeBadge ${mode}`}>{mode === 'human' ? 'Human' : 'AI'}</span>{conversation.needsAttention ? <span className="attentionFlag">Needs You</span> : null}<span className="jobHint">{conversation.jobHint}</span></div>
             </button>;
           })}
@@ -274,7 +304,31 @@ export default function ConversationsInbox({ conversations, notices = [], initia
         </header>
         {selected.needsAttention ? <div className="attentionBanner"><strong>Needs your attention</strong><span>{selected.attentionReason}</span></div> : null}
         <div className="messageHistory">
-          {selected.messages.map(message => <article className={`messageRow ${message.direction}`} key={message.id}><div className="messageBubble"><div className="messageMeta"><strong>{message.direction === 'inbound' ? 'Customer' : actorLabel(message.actor)}</strong></div><p>{message.text}</p><time>{timestamp(message.createdAt)}</time></div></article>)}
+          {selected.messages.map(message => {
+            const whatsapp = waHref(selected.phone);
+            return <article className={`messageRow ${message.direction}`} key={message.id}>
+              <div className={`messageBubble ${message.mediaKind === 'image' ? 'hasMedia' : ''} ${message.mediaKind === 'missing_image' ? 'missingMedia' : ''}`}>
+                <div className="messageMeta"><strong>{message.direction === 'inbound' ? 'Customer' : actorLabel(message.actor)}</strong></div>
+                {message.mediaKind === 'image' && message.mediaUrl ? (
+                  <div className="messageMedia">
+                    <button type="button" className="messageMediaButton" onClick={() => setLightboxUrl(message.mediaUrl || null)} aria-label="Expand photo">
+                      <img src={message.mediaUrl} alt={message.caption || 'Customer photo'} loading="lazy" />
+                    </button>
+                    {message.caption ? <p className="messageCaption">{message.caption}</p> : null}
+                  </div>
+                ) : message.mediaKind === 'missing_image' ? (
+                  <div className="messageMediaMissing">
+                    <strong>Photo (not stored for viewing yet)</strong>
+                    {message.caption ? <p className="messageCaption">{message.caption}</p> : null}
+                    {whatsapp ? <a className="openWhatsAppLink" href={whatsapp} target="_blank" rel="noreferrer">Open WhatsApp</a> : <span className="openWhatsAppUnavailable">WhatsApp link unavailable</span>}
+                  </div>
+                ) : (
+                  <p>{message.text}</p>
+                )}
+                <time>{timestamp(message.createdAt)}</time>
+              </div>
+            </article>;
+          })}
           <div ref={historyEnd} />
         </div>
         <footer className={`conversationComposer ${selectedMode}`}>
@@ -304,5 +358,10 @@ export default function ConversationsInbox({ conversations, notices = [], initia
         </div> : <div className="jobContextEmpty"><strong>No linked job</strong><span>This customer thread remains readable, but job controls are unavailable.</span></div>}
       </aside>
     </div>
+    {lightboxUrl ? <div className="inboxLightbox" role="dialog" aria-modal="true" aria-label="Photo" onClick={() => setLightboxUrl(null)}>
+      <button type="button" className="inboxLightboxClose" onClick={() => setLightboxUrl(null)} aria-label="Close">Close</button>
+      <img src={lightboxUrl} alt="Expanded photo" onClick={event => event.stopPropagation()} />
+      <a className="inboxLightboxOpenTab" href={lightboxUrl} target="_blank" rel="noreferrer" onClick={event => event.stopPropagation()}>Open in new tab</a>
+    </div> : null}
   </div>;
 }
