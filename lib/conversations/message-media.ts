@@ -1,6 +1,12 @@
 /**
  * Soft media field helpers for inbox messages.
  * Columns may be absent from older rows / schemas — never throw.
+ *
+ * Persistence note (2026-09-10): live messages with body "[Photo]" have media_url=null
+ * and the public `job-media` bucket is empty. WF-01 "Store Inbound Message" currently
+ * inserts only job_id/customer_id/channel/direction/sender/message_text/provider_message_id
+ * — it does not upload binaries or set media_url/message_type. Inbox correctly shows the
+ * honest missing-media fallback until WF persists a stored URL/path.
  */
 
 export type MediaFields = {
@@ -28,27 +34,57 @@ export function firstMediaValue(row: Record<string, unknown> | undefined, keys: 
   return '';
 }
 
+/**
+ * Turn a stored media reference into an <img>-usable URL.
+ * - Absolute http(s) URLs pass through
+ * - `job-media/...` or bare storage paths become public Supabase object URLs
+ * Never invents a URL when the input is empty.
+ */
+export function resolveStoredMediaUrl(
+  raw: string,
+  supabaseUrl = typeof process !== 'undefined' ? process.env.NEXT_PUBLIC_SUPABASE_URL || '' : ''
+) {
+  const value = String(raw || '').trim();
+  if (!value) return '';
+  if (/^https?:\/\//i.test(value) || value.startsWith('data:image/')) return value;
+
+  const base = String(supabaseUrl || '').replace(/\/$/, '');
+  if (!base) return value;
+
+  let path = value.replace(/^\/+/, '');
+  if (/^storage\/v1\/object\/(?:public|sign)\//i.test(path)) {
+    return `${base}/${path}`;
+  }
+  if (/^job-media\//i.test(path)) {
+    return `${base}/storage/v1/object/public/${path}`;
+  }
+  // Treat remaining relative paths as objects inside the public job-media bucket.
+  return `${base}/storage/v1/object/public/job-media/${path}`;
+}
+
 export function extractMediaFields(row: Record<string, unknown> | undefined): MediaFields {
+  const storagePath = firstMediaValue(row, [
+    'storage_path',
+    'storagePath',
+    'media_path',
+    'file_path',
+  ]);
+  const rawUrl = firstMediaValue(row, [
+    'media_url',
+    'mediaUrl',
+    'public_url',
+    'signed_url',
+    'storage_url',
+    'image_url',
+    'file_url',
+  ]);
   return {
-    mediaUrl: firstMediaValue(row, [
-      'media_url',
-      'mediaUrl',
-      'public_url',
-      'signed_url',
-      'storage_url',
-      'image_url',
-      'file_url',
-    ]),
+    mediaUrl: resolveStoredMediaUrl(rawUrl || storagePath),
     mediaId: firstMediaValue(row, ['media_id', 'mediaId', 'whatsapp_media_id']),
     messageType: firstMediaValue(row, ['message_type', 'messageType', 'msg_type']),
     mimeType: firstMediaValue(row, ['mime_type', 'mimeType', 'content_type', 'contentType']),
     caption: firstMediaValue(row, ['caption', 'media_caption']),
-    storagePath: firstMediaValue(row, [
-      'storage_path',
-      'storagePath',
-      'media_path',
-      'file_path',
-    ]),
+    storagePath,
   };
 }
 
