@@ -7,6 +7,7 @@ import { createAdminClient } from '@/lib/supabase/admin';
 import GroupDispatchCard from './GroupDispatchCard';
 import ManagerActions from './ManagerActions';
 import PaymentResendActions from './PaymentResendActions';
+import ChaseFitterBalanceButton from './ChaseFitterBalanceButton';
 import ConversationControls from './ConversationControls';
 import { fitterSentState, fitterToSendAmount, owedNowAmount } from '@/lib/dashboard/settlement-display';
 
@@ -258,11 +259,14 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
       const owed = owedNowAmount(settlement, job);
       const toSend = fitterToSendAmount(settlement, job);
       const sent = fitterSentState(settlement);
+      const fitterPhone = String(assigned?.whatsapp_phone || assigned?.phone || '').trim();
+      const canChase = toSend !== null && toSend > 0 && Boolean(fitterPhone);
       return <section className="atelierSettlementCard" id="settlement" aria-label="Settlement">
         <div className="atelierSettlementOwed">
           <span className="eyebrow">OWED RIGHT NOW</span>
           <strong>{owed === null ? '—' : money(owed)}</strong>
           <p>{toSend !== null && toSend > 0 ? `Fitter to send ${money(toSend)}` : sent.label === 'Yes' ? 'Nothing outstanding from the fitter.' : settlement ? 'Settlement on file — amount unclear.' : 'No settlement record yet.'}</p>
+          {canChase ? <ChaseFitterBalanceButton jobId={job.id} amountLabel={money(toSend)} /> : null}
         </div>
         <div className="atelierSettlementSent">
           <span className="eyebrow">FITTER SENT IT?</span>

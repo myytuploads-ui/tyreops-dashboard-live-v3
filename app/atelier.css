@@ -780,3 +780,7 @@
 .paymentRowResend{min-height:36px!important;padding:8px 12px!important;font-size:11px}
 .paymentResendUnderList{margin-top:16px;padding-top:14px;border-top:1px solid #ffffff0d}
 .atelierProblem a{color:#ed3047;text-decoration:underline;text-underline-offset:2px}
+/* Chase fitter balance on settlement card */
+.chaseFitterBalance{margin-top:16px}
+.chaseFitterBalanceBtn{width:100%;min-height:48px}
+.chaseFitterBalanceMeta{margin:10px 0 0;color:#8f968c;font-size:12px;line-height:1.45}
